@@ -1,7 +1,8 @@
 import { useState } from 'react';
 import { Link, useLocation } from 'react-router-dom';
-import { TrendingUp, Tags, BarChart3, MapPin, Truck, Fish, Menu, X } from 'lucide-react';
+import { TrendingUp, Tags, BarChart3, MapPin, Truck, Fish, Menu, X, RotateCcw } from 'lucide-react';
 import { cn } from '@/lib/utils';
+import { useStore } from '@/store/useStore';
 
 const navItems = [
   { label: '投资分析', icon: TrendingUp, path: '/' },
@@ -22,6 +23,7 @@ const pageTitles: Record<string, string> = {
 export default function Layout({ children }: { children: React.ReactNode }) {
   const location = useLocation();
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
+  const resetAll = useStore((s) => s.resetAll);
 
   const currentPath = location.pathname;
   const pageTitle = pageTitles[currentPath] ?? '鱼跃水产';
@@ -141,6 +143,18 @@ export default function Layout({ children }: { children: React.ReactNode }) {
         <div className="flex items-center gap-2 px-4 md:px-6 py-4 bg-white/60 backdrop-blur-sm border-b border-sky-200">
           <Fish className="h-5 w-5 text-sky-900 shrink-0" />
           <h1 className="text-lg md:text-xl font-bold text-sky-900">{pageTitle}</h1>
+          <button
+            onClick={() => {
+              if (window.confirm('确定要清空所有数据并重置吗？此操作不可撤销。')) {
+                resetAll();
+              }
+            }}
+            className="ml-auto flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-medium text-sky-600 bg-sky-50 border border-sky-200 hover:bg-sky-100 hover:text-sky-800 transition-colors"
+            title="清空数据并重置"
+          >
+            <RotateCcw className="h-3.5 w-3.5" />
+            <span className="hidden sm:inline">重置</span>
+          </button>
         </div>
 
         {/* Page content */}

@@ -81,6 +81,7 @@ interface StoreState {
   addDailyRecord: (record: DailyRecord) => void
   updateDailyRecord: (date: string, record: Partial<DailyRecord>) => void
   removeDailyRecord: (date: string) => void
+  resetAll: () => void
 }
 
 export type {
@@ -181,9 +182,14 @@ export const useStore = create<StoreState>()(
         set((state) => ({
           dailyRecords: state.dailyRecords.filter((r) => r.date !== date),
         })),
+
+      resetAll: () => {
+        localStorage.removeItem('yuyue-store')
+        window.location.reload()
+      },
     }),
     {
       name: 'yuyue-store',
-    }
-  )
+    },
+  ),
 )
