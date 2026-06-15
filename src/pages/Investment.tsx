@@ -70,6 +70,23 @@ export default function Investment() {
   const [cashFlowRevenue, setCashFlowRevenue] = useState(50000);
   const [cashFlowMonths, setCashFlowMonths] = useState(12);
 
+  // 品类成本拆分
+  const categoryBreakdown = useMemo(() => {
+    const categories = [
+      { key: 'seafood', label: '水产海鲜', margin: marginRates.seafood, ratio: salesRatios.seafood },
+      { key: 'chilled', label: '冰鲜', margin: marginRates.chilled, ratio: salesRatios.chilled },
+      { key: 'frozen', label: '冻货', margin: marginRates.frozen, ratio: salesRatios.frozen },
+      { key: 'dry', label: '干货', margin: marginRates.dry, ratio: salesRatios.dry },
+      { key: 'processed', label: '加工', margin: marginRates.processed, ratio: salesRatios.processed },
+    ];
+    return categories.map((c) => {
+      const revenue = cashFlowRevenue * c.ratio;
+      const cost = revenue * (1 - c.margin);
+      const profit = revenue * c.margin;
+      return { ...c, revenue, cost, profit };
+    });
+  }, [cashFlowRevenue, marginRates, salesRatios]);
+
   // Derived calculations
   const fixedCosts = useMemo(
     () => calculateFixedCosts(investmentParams),
@@ -596,6 +613,58 @@ export default function Investment() {
                 </button>
               ))}
             </div>
+          </div>
+
+          {/* 品类成本拆分 */}
+          <div className="mb-4 rounded-lg border border-sky-200 overflow-hidden">
+            <table className="w-full text-sm">
+              <thead>
+                <tr className="bg-sky-50">
+                  <th className="text-left py-2 px-3 text-sky-900 font-semibold text-xs">品类</th>
+                  <th className="text-right py-2 px-3 text-sky-900 font-semibold text-xs">销售占比</th>
+                  <th className="text-right py-2 px-3 text-sky-900 font-semibold text-xs">月营收</th>
+                  <th className="text-right py-2 px-3 text-sky-900 font-semibold text-xs">产品成本</th>
+                  <th className="text-right py-2 px-3 text-sky-900 font-semibold text-xs">毛利润</th>
+                  <th className="text-right py-2 px-3 text-sky-900 font-semibold text-xs">毛利率</th>
+                </tr>
+              </thead>
+              <tbody>
+                {categoryBreakdown.map((c) => (
+                  <tr key={c.key} className="border-t border-sky-100 hover:bg-sky-50/50 transition-colors">
+                    <td className="py-2 px-3 font-medium text-sky-900 text-xs">{c.label}</td>
+                    <td className="py-2 px-3 text-right font-mono text-xs text-sky-600">{(c.ratio * 100).toFixed(0)}%</td>
+                    <td className="py-2 px-3 text-right font-mono text-xs text-sky-900">¥{c.revenue.toFixed(0)}</td>
+                    <td className="py-2 px-3 text-right font-mono text-xs text-red-600">¥{c.cost.toFixed(0)}</td>
+                    <td className="py-2 px-3 text-right font-mono text-xs text-emerald-600">¥{c.profit.toFixed(0)}</td>
+                    <td className="py-2 px-3 text-right font-mono text-xs font-semibold">
+                      <span className={
+                        c.margin >= 0.4 ? 'text-emerald-600' : c.margin >= 0.25 ? 'text-amber-600' : 'text-red-600'
+                      }>
+                        {(c.margin * 100).toFixed(0)}%
+                      </span>
+                    </td>
+                  </tr>
+                ))}
+                <tr className="border-t-2 border-sky-300 bg-sky-50/80 font-bold">
+                  <td className="py-2 px-3 text-sky-900 text-xs">合计</td>
+                  <td className="py-2 px-3 text-right font-mono text-xs text-sky-600">100%</td>
+                  <td className="py-2 px-3 text-right font-mono text-xs text-sky-900">¥{cashFlowRevenue.toLocaleString()}</td>
+                  <td className="py-2 px-3 text-right font-mono text-xs text-red-600">
+                    ¥{categoryBreakdown.reduce((s, c) => s + c.cost, 0).toFixed(0)}
+                  </td>
+                  <td className="py-2 px-3 text-right font-mono text-xs text-emerald-600">
+                    ¥{categoryBreakdown.reduce((s, c) => s + c.profit, 0).toFixed(0)}
+                  </td>
+                  <td className="py-2 px-3 text-right font-mono text-xs">
+                    <span className={
+                      compositeMargin >= 0.4 ? 'text-emerald-600' : compositeMargin >= 0.25 ? 'text-amber-600' : 'text-red-600'
+                    }>
+                      {(compositeMargin * 100).toFixed(1)}%
+                    </span>
+                  </td>
+                </tr>
+              </tbody>
+            </table>
           </div>
 
           <ResponsiveContainer width="100%" height={320}>
