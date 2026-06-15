@@ -1,0 +1,145 @@
+{
+    "message": "ok。",
+    "query_type": "general",
+    "result_type": "poi_type",
+    "results": [
+        {
+            "address": "河北省邯郸市魏县大安大道与梨乡大街交叉路口东行200米路南",
+            "area": "魏县",
+            "city": "邯郸市",
+            "detail": 1,
+            "location": {
+                "lat": 36.34958,
+                "lng": 114.959676
+            },
+            "name": "圣轩城壹号院",
+            "province": "河北省",
+            "street_id": "f905178613968c5081288ac7",
+            "uid": "f905178613968c5081288ac7"
+        },
+        {
+            "address": "邯郸市魏县洹水大道668号附近",
+            "area": "魏县",
+            "city": "邯郸市",
+            "detail": 1,
+            "location": {
+                "lat": 36.357455,
+                "lng": 114.960118
+            },
+            "name": "景和佳苑",
+            "province": "河北省",
+            "street_id": "",
+            "uid": "30bd592b5b7d6713ca1b95c9"
+        },
+        {
+            "address": "邯郸市魏县科教东路与兴源南街交叉路口往西南约80米",
+            "area": "魏县",
+            "city": "邯郸市",
+            "detail": 1,
+            "location": {
+                "lat": 36.349148,
+                "lng": 114.962392
+            },
+            "name": "梨城首府",
+            "province": "河北省",
+            "uid": "c230c53ed8dd84951329354a"
+        },
+        {
+            "address": "河北省邯郸市魏县魏城镇洹水大道东段隆生隆对过",
+            "area": "魏县",
+            "city": "邯郸市",
+            "detail": 1,
+            "location": {
+                "lat": 36.358452,
+                "lng": 114.95772
+            },
+            "name": "魏都花园",
+            "province": "河北省",
+            "street_id": "",
+            "uid": "782003548d65e6f53913fd94"
+        },
+        {
+            "address": "河北省邯郸市魏县梨乡大街468号",
+            "area": "魏县",
+            "city": "邯郸市",
+            "detail": 1,
+            "location": {
+                "lat": 36.352084,
+                "lng": 114.955865
+            },
+            "name": "林泽·五福院",
+            "province": "河北省",
+            "uid": "549fc96ed7e42cbc72210b05"
+        },
+        {
+            "address": "邯郸市魏县洹水大道东段中国农业银行西南侧约150米",
+            "area": "魏县",
+            "city": "邯郸市",
+            "detail": 1,
+            "location": {
+                "lat": 36.35539,
+                "lng": 114.95298
+            },
+            "name": "洹水郦城",
+            "province": "河北省",
+            "uid": "1b27f4109827d3c9931fc91a"
+        },
+        {
+            "address": "邯郸市魏县礼贤南街287号",
+            "area": "魏县",
+            "city": "邯郸市",
+            "detail": 1,
+            "location": {
+                "lat": 36.359302,
+                "lng": 114.950453
+            },
+            "name": "洪源小区",
+            "province": "河北省",
+            "street_id": "",
+            "uid": "5211d219e187e0587dc8760a"
+        },
+        {
+            "address": "邯郸市魏县S313与洹水大道交叉路口往东南约70米",
+            "area": "魏县",
+            "city": "邯郸市",
+            "detail": 1,
+            "location": {
+                "lat": 36.358434,
+                "lng": 114.968097
+            },
+            "name": "东方紫竹苑",
+            "province": "河北省",
+            "street_id": "",
+            "uid": "ddef000f020ab49728fc48d0"
+        },
+        {
+            "address": "河北省邯郸市魏县魏州东路645号",
+            "area": "魏县",
+            "city": "邯郸市",
+            "detail": 1,
+            "location": {
+                "lat": 36.364301,
+                "lng": 114.96197
+            },
+            "name": "奥林观邸",
+            "province": "河北省",
+            "street_id": "d4aa2d8a329d45e89fe321ae",
+            "uid": "d4aa2d8a329d45e89fe321ae"
+        },
+        {
+            "address": "河北省邯郸市魏县礼贤南街220号",
+            "area": "魏县",
+            "city": "邯郸市",
+            "detail": 1,
+            "location": {
+                "lat": 36.358308,
+                "lng": 114.948064
+            },
+            "name": "凤荷园住宅小区",
+            "province": "河北省",
+            "street_id": "89ccbb8d376021482a02e1a0",
+            "uid": "89ccbb8d376021482a02e1a0"
+        }
+    ],
+    "status": 0
+}
