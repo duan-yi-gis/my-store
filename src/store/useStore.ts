@@ -1,9 +1,16 @@
 import { create } from 'zustand'
 import { persist } from 'zustand/middleware'
 
+// 合伙人
+interface Partner {
+  id: string
+  name: string
+  investment: number
+}
+
 // 投资参数
 interface InvestmentParams {
-  totalInvestment: number      // 总投资 200000
+  partners: Partner[]             // 合伙人列表
   annualRent: number           // 年房租 30000
   rentPaymentCycle: 'yearly' | 'quarterly' | 'semiannual'  // 付款周期
   rentDepositMonths: number    // 押金月数（默认1个月）
@@ -85,6 +92,7 @@ interface StoreState {
 }
 
 export type {
+  Partner,
   InvestmentParams,
   MarginRates,
   SalesRatios,
@@ -99,7 +107,9 @@ export const useStore = create<StoreState>()(
     (set) => ({
       // 默认值
       investmentParams: {
-        totalInvestment: 200000,
+        partners: [
+          { id: '1', name: '合伙人1', investment: 200000 },
+        ],
         annualRent: 30000,
         rentPaymentCycle: 'quarterly',
         rentDepositMonths: 1,
@@ -190,6 +200,17 @@ export const useStore = create<StoreState>()(
     }),
     {
       name: 'yuyue-store',
+      migrate: (persisted: any) => {
+        // 旧数据迁移：totalInvestment → partners
+        if (persisted?.investmentParams && !persisted.investmentParams.partners) {
+          persisted.investmentParams.partners = [
+            { id: '1', name: '合伙人1', investment: persisted.investmentParams.totalInvestment || 200000 },
+          ]
+          delete persisted.investmentParams.totalInvestment
+        }
+        return persisted
+      },
+      version: 1,
     },
   ),
 )

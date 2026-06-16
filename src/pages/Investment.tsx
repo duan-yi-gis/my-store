@@ -19,6 +19,9 @@ import {
   CheckCircle,
   Fish,
   Info,
+  Plus,
+  Trash2,
+  Users,
 } from "lucide-react";
 import { useStore } from "@/store/useStore";
 import { cn } from "@/lib/utils";
@@ -49,7 +52,7 @@ function FormulaTip({ formula }: { formula: string }) {
 
 export default function Investment() {
   const {
-    investmentParams,
+    investmentParams: rawInvestmentParams,
     marginRates,
     salesRatios,
     warningThreshold,
@@ -61,9 +64,24 @@ export default function Investment() {
     setTargetAnnualProfit,
   } = useStore();
 
+  // 兼容旧数据：partners 可能为 undefined
+  const investmentParams = useMemo(
+    () => ({
+      ...rawInvestmentParams,
+      partners: rawInvestmentParams.partners ?? [{ id: '1', name: '合伙人1', investment: 200000 }],
+    }),
+    [rawInvestmentParams],
+  );
+
   const [settingsOpen, setSettingsOpen] = useState(false);
   const [cashFlowRevenue, setCashFlowRevenue] = useState(50000);
   const [cashFlowMonths, setCashFlowMonths] = useState(12);
+
+  // 总投资 = 合伙人投资之和
+  const totalInvestment = useMemo(
+    () => investmentParams.partners.reduce((s, p) => s + p.investment, 0),
+    [investmentParams.partners],
+  );
 
   // 品类成本拆分
   const categoryBreakdown = useMemo(() => {
@@ -130,7 +148,7 @@ export default function Investment() {
         : 6;
   const initialRentPayment = monthlyRent * monthsPerCycle;
   const remainingCash =
-    investmentParams.totalInvestment -
+    totalInvestment -
     investmentParams.decoration -
     investmentParams.firstBatchMaterial -
     rentDeposit -
@@ -145,7 +163,7 @@ export default function Investment() {
   const cashFlowData = useMemo(
     () =>
       calculateCashFlow(
-        investmentParams.totalInvestment,
+        totalInvestment,
         fixedCosts.monthly,
         compositeMargin,
         cashFlowRevenue,
@@ -153,7 +171,7 @@ export default function Investment() {
         initialOneTimeCost,
       ),
     [
-      investmentParams.totalInvestment,
+      totalInvestment,
       fixedCosts.monthly,
       compositeMargin,
       cashFlowRevenue,
@@ -174,7 +192,7 @@ export default function Investment() {
 
     // 考虑初始现金消耗的生存临界值：初始现金能撑N个月，N个月内需达到盈亏平衡
     // 生存月数 = 初始现金 / 月固定成本（假设零营收的最坏情况）
-    const startingCash = investmentParams.totalInvestment - initialOneTimeCost;
+    const startingCash = totalInvestment - initialOneTimeCost;
     const survivalMonthsZeroRevenue =
       fixedCosts.monthly > 0
         ? Math.floor(startingCash / fixedCosts.monthly)
@@ -197,7 +215,7 @@ export default function Investment() {
     cashFlowData,
     compositeMargin,
     fixedCosts.monthly,
-    investmentParams.totalInvestment,
+    totalInvestment,
     initialOneTimeCost,
   ]);
 
@@ -220,15 +238,85 @@ export default function Investment() {
           <FormulaTip formula="固定成本 = 人工 + 水电 + 房租；剩余现金 = 总投资 - 一次性支出" />
         </h2>
         <div className="grid grid-cols-2 md:grid-cols-3 gap-4 mb-6">
-          <div className="col-span-2 md:col-span-3 max-w-[calc(33.333%-1rem)]">
-            <InputField
-              label="总投资"
-              value={investmentParams.totalInvestment}
-              onChange={(v) => setInvestmentParams({ totalInvestment: v })}
-              unit="元"
-              min={0}
-              step={10000}
-            />
+          {/* 合伙人投资 */}
+          <div className="col-span-2 md:col-span-3">
+            <div className="flex items-center justify-between mb-2">
+              <label className="text-sm font-medium text-sky-900 flex items-center gap-1.5">
+                <Users className="h-4 w-4 text-sky-600" />
+                合伙人投资
+              </label>
+              <button
+                onClick={() => {
+                  const newId = crypto.randomUUID()
+                  const idx = investmentParams.partners.length + 1
+                  setInvestmentParams({
+                    partners: [...investmentParams.partners, { id: newId, name: `合伙人${idx}`, investment: 0 }],
+                  })
+                }}
+                className="flex items-center gap-1 px-3 py-1.5 rounded-lg text-xs font-medium bg-sky-600 text-white hover:bg-sky-700 transition-colors"
+              >
+                <Plus className="h-3.5 w-3.5" />
+                添加合伙人
+              </button>
+            </div>
+            <div className="space-y-2">
+              {investmentParams.partners.map((partner, idx) => (
+                <div key={partner.id} className="flex items-center gap-2">
+                  <input
+                    type="text"
+                    value={partner.name}
+                    onChange={(e) => {
+                      const updated = investmentParams.partners.map((p) =>
+                        p.id === partner.id ? { ...p, name: e.target.value } : p,
+                      )
+                      setInvestmentParams({ partners: updated })
+                    }}
+                    className="w-28 rounded-lg border border-sky-300 bg-white px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-sky-500"
+                    placeholder="姓名"
+                  />
+                  <div className="flex-1 relative">
+                    <input
+                      type="number"
+                      value={partner.investment || ''}
+                      onChange={(e) => {
+                        const v = parseFloat(e.target.value) || 0
+                        const updated = investmentParams.partners.map((p) =>
+                          p.id === partner.id ? { ...p, investment: v } : p,
+                        )
+                        setInvestmentParams({ partners: updated })
+                      }}
+                      onWheel={(e) => e.currentTarget.blur()}
+                      min={0}
+                      step={10000}
+                      className="w-full rounded-lg border border-sky-300 bg-white px-3 py-2 text-sm font-mono focus:outline-none focus:ring-2 focus:ring-sky-500 [appearance:textfield] [&::-webkit-outer-spin-button]:appearance-none [&::-webkit-inner-spin-button]:appearance-none"
+                      placeholder="投资金额"
+                    />
+                    <span className="absolute right-3 top-1/2 -translate-y-1/2 text-xs text-sky-400">元</span>
+                  </div>
+                  <span className="text-xs font-mono text-sky-600 min-w-[48px] text-right">
+                    {totalInvestment > 0 ? ((partner.investment / totalInvestment) * 100).toFixed(1) : 0}%
+                  </span>
+                  {investmentParams.partners.length > 1 && (
+                    <button
+                      onClick={() => {
+                        setInvestmentParams({
+                          partners: investmentParams.partners.filter((p) => p.id !== partner.id),
+                        })
+                      }}
+                      className="p-1.5 rounded-lg text-red-400 hover:text-red-600 hover:bg-red-50 transition-colors"
+                    >
+                      <Trash2 className="h-4 w-4" />
+                    </button>
+                  )}
+                </div>
+              ))}
+            </div>
+            <div className="mt-2 flex items-center gap-4 text-sm bg-sky-50 rounded-lg px-3 py-2 border border-sky-200">
+              <span className="text-sky-700">总投资：</span>
+              <span className="font-bold font-mono text-sky-900 text-base">¥{totalInvestment.toLocaleString()}</span>
+              <span className="text-sky-500">|</span>
+              <span className="text-sky-700">合伙人：{investmentParams.partners.length}人</span>
+            </div>
           </div>
           <InputField
             label="年房租"
@@ -675,7 +763,7 @@ export default function Investment() {
             const netProfit = totalGrossProfit - fixedCosts.monthly;
             const paybackMonths =
               netProfit > 0
-                ? investmentParams.totalInvestment / netProfit
+                ? totalInvestment / netProfit
                 : Infinity;
             const paybackDate =
               paybackMonths < Infinity
@@ -685,8 +773,8 @@ export default function Investment() {
                 : "无法回本";
             const annualProfit = netProfit * 12;
             const annualROI =
-              investmentParams.totalInvestment > 0
-                ? (annualProfit / investmentParams.totalInvestment) * 100
+              totalInvestment > 0
+                ? (annualProfit / totalInvestment) * 100
                 : 0;
             return (
               <div className="mb-4 grid grid-cols-2 sm:grid-cols-4 gap-3">
@@ -799,6 +887,110 @@ export default function Investment() {
                           : "需提高营收或降本"}
                   </p>
                 </div>
+              </div>
+            );
+          })()}
+
+          {/* ── 合伙人年底分红 ── */}
+          <h3 className="text-sm font-bold text-sky-800 mb-3 mt-6 flex items-center gap-1.5">
+            <Users className="h-4 w-4 text-amber-600" />
+            合伙人年底分红
+            <FormulaTip formula="年纯利润 × 各合伙人投资占比 = 各合伙人分红金额" />
+          </h3>
+          {(() => {
+            const totalGrossProfit = categoryBreakdown.reduce(
+              (s, c) => s + c.profit,
+              0,
+            );
+            const netProfit = totalGrossProfit - fixedCosts.monthly;
+            const annualNetProfit = netProfit * 12;
+            return (
+              <div className="rounded-lg border border-sky-200 overflow-hidden">
+                <table className="w-full text-sm">
+                  <thead>
+                    <tr className="bg-sky-50">
+                      <th className="text-left py-2 px-3 text-sky-900 font-semibold text-xs">
+                        合伙人
+                      </th>
+                      <th className="text-right py-2 px-3 text-sky-900 font-semibold text-xs">
+                        投资金额
+                      </th>
+                      <th className="text-right py-2 px-3 text-sky-900 font-semibold text-xs">
+                        投资占比
+                      </th>
+                      <th className="text-right py-2 px-3 text-sky-900 font-semibold text-xs">
+                        年底分红
+                      </th>
+                      <th className="text-right py-2 px-3 text-sky-900 font-semibold text-xs">
+                        投资回报率
+                      </th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    {investmentParams.partners.map((partner) => {
+                      const share = totalInvestment > 0 ? partner.investment / totalInvestment : 0;
+                      const dividend = annualNetProfit * share;
+                      const roi = partner.investment > 0 ? (dividend / partner.investment) * 100 : 0;
+                      return (
+                        <tr
+                          key={partner.id}
+                          className="border-t border-sky-100 hover:bg-sky-50/50 transition-colors"
+                        >
+                          <td className="py-2 px-3 font-medium text-sky-900 text-xs">
+                            {partner.name}
+                          </td>
+                          <td className="py-2 px-3 text-right font-mono text-xs text-sky-900">
+                            ¥{partner.investment.toLocaleString()}
+                          </td>
+                          <td className="py-2 px-3 text-right font-mono text-xs text-sky-600">
+                            {(share * 100).toFixed(1)}%
+                          </td>
+                          <td className={cn(
+                            "py-2 px-3 text-right font-mono text-xs font-semibold",
+                            dividend >= 0 ? "text-emerald-600" : "text-red-600",
+                          )}>
+                            {dividend >= 0 ? "+" : ""}¥{dividend.toLocaleString("zh-CN", { minimumFractionDigits: 0, maximumFractionDigits: 0 })}
+                          </td>
+                          <td className={cn(
+                            "py-2 px-3 text-right font-mono text-xs font-semibold",
+                            roi >= 0 ? "text-violet-600" : "text-red-600",
+                          )}>
+                            {roi.toFixed(1)}%
+                          </td>
+                        </tr>
+                      );
+                    })}
+                    <tr className="border-t-2 border-sky-300 bg-sky-50/80 font-bold">
+                      <td className="py-2 px-3 text-sky-900 text-xs">合计</td>
+                      <td className="py-2 px-3 text-right font-mono text-xs text-sky-900">
+                        ¥{totalInvestment.toLocaleString()}
+                      </td>
+                      <td className="py-2 px-3 text-right font-mono text-xs text-sky-600">
+                        100%
+                      </td>
+                      <td className={cn(
+                        "py-2 px-3 text-right font-mono text-xs",
+                        annualNetProfit >= 0 ? "text-emerald-600" : "text-red-600",
+                      )}>
+                        {annualNetProfit >= 0 ? "+" : ""}¥{annualNetProfit.toLocaleString("zh-CN", { minimumFractionDigits: 0, maximumFractionDigits: 0 })}
+                      </td>
+                      <td className={cn(
+                        "py-2 px-3 text-right font-mono text-xs",
+                        totalInvestment > 0 && (annualNetProfit / totalInvestment) * 100 >= 0
+                          ? "text-violet-600"
+                          : "text-red-600",
+                      )}>
+                        {totalInvestment > 0 ? ((annualNetProfit / totalInvestment) * 100).toFixed(1) : "0.0"}%
+                      </td>
+                    </tr>
+                  </tbody>
+                </table>
+                {annualNetProfit <= 0 && (
+                  <div className="flex items-center gap-2 text-xs text-red-600 bg-red-50 px-3 py-2 border-t border-red-200">
+                    <AlertTriangle className="h-3.5 w-3.5 shrink-0" />
+                    年纯利润为负，暂无分红
+                  </div>
+                )}
               </div>
             );
           })()}
