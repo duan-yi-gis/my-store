@@ -11,7 +11,7 @@ interface Partner {
 // 投资参数
 interface InvestmentParams {
   partners: Partner[]             // 合伙人列表
-  annualRent: number           // 年房租 30000
+  annualRent: number           // 年房租 60000
   rentPaymentCycle: 'yearly' | 'quarterly' | 'semiannual'  // 付款周期
   rentDepositMonths: number    // 押金月数（默认1个月）
   decoration: number           // 装修 60000
@@ -110,7 +110,7 @@ export const useStore = create<StoreState>()(
         partners: [
           { id: '1', name: '合伙人1', investment: 200000 },
         ],
-        annualRent: 30000,
+        annualRent: 60000,
         rentPaymentCycle: 'quarterly',
         rentDepositMonths: 1,
         decoration: 60000,
