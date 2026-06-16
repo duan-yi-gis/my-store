@@ -1,9 +1,5 @@
 import { useState, useMemo } from 'react';
 import {
-  AreaChart,
-  Area,
-  BarChart,
-  Bar,
   LineChart,
   Line,
   XAxis,
@@ -16,7 +12,6 @@ import {
 import {
   TrendingUp,
   Shield,
-  Clock,
   DollarSign,
   ChevronDown,
   ChevronUp,
@@ -26,13 +21,13 @@ import {
   Info,
 } from 'lucide-react';
 import { useStore } from '@/store/useStore';
+import { cn } from '@/lib/utils';
 import { StatCard } from '@/components/StatCard';
 import { InputField } from '@/components/InputField';
 import {
   calculateFixedCosts,
   calculateCompositeMargin,
   calculateBreakEven,
-  calculatePaybackPeriod,
   calculateCashFlow,
   formatCurrency,
   formatPercent,
@@ -111,58 +106,6 @@ export default function Investment() {
     rentDeposit -
     initialRentPayment;
 
-  // Break-even chart data
-  const breakEvenChartData = useMemo(() => {
-    const data = [];
-    for (let rev = 0; rev <= 5000; rev += 250) {
-      const cost = fixedCosts.daily + rev * (1 - compositeMargin);
-      const profit = rev - cost;
-      data.push({
-        revenue: rev,
-        营业额: rev,
-        成本: cost,
-        利润: Math.round(profit),
-      });
-    }
-    return data;
-  }, [fixedCosts.daily, compositeMargin]);
-
-  // Payback scenarios
-  const scenarios = useMemo(
-    () =>
-      calculatePaybackPeriod(investmentParams.totalInvestment, fixedCosts.monthly, compositeMargin, {
-        conservative: 30000,
-        moderate: 50000,
-        optimistic: 80000,
-      }),
-    [investmentParams.totalInvestment, fixedCosts.monthly, compositeMargin]
-  );
-
-  const scenarioDetails = useMemo(() => {
-    const build = (name: string, monthlyRev: number, months: number, theme: string) => {
-      const monthlyProfit = monthlyRev * compositeMargin - fixedCosts.monthly;
-      const paybackDate =
-        months < Infinity
-          ? new Date(Date.now() + months * 30 * 24 * 3600 * 1000).toLocaleDateString('zh-CN')
-          : '无法回本';
-      return { name, monthlyRev, monthlyProfit, months, paybackDate, theme };
-    };
-    return [
-      build('保守', 30000, scenarios.conservative, 'blue'),
-      build('稳健', 50000, scenarios.moderate, 'amber'),
-      build('乐观', 80000, scenarios.optimistic, 'emerald'),
-    ];
-  }, [scenarios, compositeMargin, fixedCosts.monthly]);
-
-  const paybackBarData = useMemo(
-    () =>
-      scenarioDetails.map((s) => ({
-        name: s.name,
-        回本月数: s.months < Infinity ? Math.round(s.months * 10) / 10 : 60,
-      })),
-    [scenarioDetails]
-  );
-
   // Cash flow data
   const initialOneTimeCost = investmentParams.decoration + investmentParams.firstBatchMaterial + rentDeposit + initialRentPayment
   const cashFlowData = useMemo(
@@ -197,24 +140,6 @@ export default function Investment() {
     salesRatios.seafood + salesRatios.chilled + salesRatios.frozen + salesRatios.dry + salesRatios.processed;
   const salesRatioValid = Math.abs(salesRatioSum - 1) < 0.001;
 
-  const themeStyles: Record<string, { card: string; header: string; accent: string }> = {
-    blue: {
-      card: 'border-blue-200 bg-gradient-to-br from-blue-50 to-blue-100',
-      header: 'text-blue-800',
-      accent: 'bg-blue-500',
-    },
-    amber: {
-      card: 'border-amber-200 bg-gradient-to-br from-amber-50 to-amber-100',
-      header: 'text-amber-800',
-      accent: 'bg-amber-500',
-    },
-    emerald: {
-      card: 'border-emerald-200 bg-gradient-to-br from-emerald-50 to-emerald-100',
-      header: 'text-emerald-800',
-      accent: 'bg-emerald-500',
-    },
-  };
-
   return (
     <div className="space-y-8 max-w-6xl mx-auto">
       {/* ===== Section 1: 总投资概览 ===== */}
@@ -245,9 +170,9 @@ export default function Investment() {
             <label className="block text-sm font-medium text-sky-900 mb-1">付款周期</label>
             <div className="flex gap-2">
               {([
-                { value: 'yearly' as const, label: '年付' },
                 { value: 'quarterly' as const, label: '季度付' },
                 { value: 'semiannual' as const, label: '半年付' },
+                { value: 'yearly' as const, label: '年付' },
               ]).map((opt) => (
                 <button
                   key={opt.value}
@@ -412,173 +337,21 @@ export default function Investment() {
             </div>
           </div>
         </div>
-        <div className="bg-white rounded-xl p-4 md:p-6 shadow-sm border border-sky-100">
-          <ResponsiveContainer width="100%" height={320}>
-            <AreaChart data={breakEvenChartData}>
-              <CartesianGrid strokeDasharray="3 3" stroke="#e0f2fe" />
-              <XAxis
-                dataKey="revenue"
-                type="number"
-                domain={[0, 5000]}
-                tickFormatter={(v: number) => `¥${v}`}
-                stroke="#0c4a6e"
-                fontSize={12}
-              />
-              <YAxis
-                tickFormatter={(v: number) => `¥${v}`}
-                stroke="#0c4a6e"
-                fontSize={12}
-              />
-              <Tooltip
-                formatter={(value: number, name: string) => {
-                  if (name === '利润') {
-                    const prefix = value >= 0 ? '+' : '';
-                    return [`${prefix}${formatCurrency(value)}`, name];
-                  }
-                  return [formatCurrency(value), name];
-                }}
-                labelFormatter={(label: number) => `日营业额: ¥${label}`}
-                contentStyle={{ borderRadius: '8px', border: '1px solid #bae6fd' }}
-              />
-              <Area
-                type="monotone"
-                dataKey="营业额"
-                stroke="#0ea5e9"
-                fill="#bae6fd"
-                fillOpacity={0.6}
-              />
-              <Area
-                type="monotone"
-                dataKey="成本"
-                stroke="#ef4444"
-                fill="#fecaca"
-                fillOpacity={0.6}
-              />
-              <Line
-                type="monotone"
-                dataKey="利润"
-                stroke="#10b981"
-                strokeWidth={2}
-                dot={false}
-                strokeDasharray="4 2"
-              />
-              <ReferenceLine
-                x={breakEven.daily}
-                stroke="#0369a1"
-                strokeDasharray="5 5"
-                strokeWidth={2}
-                label={{
-                  value: `平衡点 ¥${Math.round(breakEven.daily)}`,
-                  position: 'top',
-                  fill: '#0369a1',
-                  fontSize: 12,
-                }}
-              />
-            </AreaChart>
-          </ResponsiveContainer>
-          <p className="mt-4 text-center text-sm text-sky-800">
-            每日营业额需达到{' '}
-            <span className="font-bold text-sky-900">
-              {formatCurrency(breakEven.daily)}
-            </span>{' '}
-            才能覆盖固定成本
-          </p>
-        </div>
       </section>
 
-      {/* ===== Section 3: 回本周期预测 ===== */}
-      <section>
-        <h2 className="flex items-center gap-2 text-lg font-bold text-sky-900 mb-4">
-          <Clock className="h-5 w-5 text-sky-700" />
-          回本周期预测
-        </h2>
-        <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mb-6">
-          {scenarioDetails.map((s) => {
-            const style = themeStyles[s.theme];
-            return (
-              <div
-                key={s.name}
-                className={`rounded-xl border-2 p-5 ${style.card}`}
-              >
-                <div className="flex items-center gap-2 mb-4">
-                  <div className={`w-3 h-3 rounded-full ${style.accent}`} />
-                  <h3 className={`text-lg font-bold ${style.header}`}>
-                    {s.name}方案
-                  </h3>
-                </div>
-                <div className="space-y-3 text-sm">
-                  <div className="flex justify-between">
-                    <span className="text-gray-600">月营收</span>
-                    <span className="font-mono font-semibold text-sky-900">
-                      {formatCurrency(s.monthlyRev)}
-                    </span>
-                  </div>
-                  <div className="flex justify-between">
-                    <span className="text-gray-600">月净利润<FormulaTip formula="月营收 × 综合毛利率 - 月固定成本" /></span>
-                    <span
-                      className={`font-mono font-semibold ${
-                        s.monthlyProfit > 0 ? 'text-emerald-700' : 'text-red-600'
-                      }`}
-                    >
-                      {formatCurrency(s.monthlyProfit)}
-                    </span>
-                  </div>
-                  <div className="flex justify-between">
-                    <span className="text-gray-600">回本周期<FormulaTip formula="总投资 ÷ 月净利润" /></span>
-                    <span className="font-mono font-semibold text-sky-900">
-                      {s.months < Infinity
-                        ? `${Math.round(s.months * 10) / 10} 月`
-                        : '无法回本'}
-                    </span>
-                  </div>
-                  <div className="flex justify-between">
-                    <span className="text-gray-600">预计回本日期</span>
-                    <span className="font-mono font-semibold text-sky-900">
-                      {s.paybackDate}
-                    </span>
-                  </div>
-                </div>
-              </div>
-            );
-          })}
-        </div>
-        <div className="bg-white rounded-xl p-4 md:p-6 shadow-sm border border-sky-100">
-          <ResponsiveContainer width="100%" height={280}>
-            <BarChart data={paybackBarData}>
-              <CartesianGrid strokeDasharray="3 3" stroke="#e0f2fe" />
-              <XAxis dataKey="name" stroke="#0c4a6e" fontSize={13} />
-              <YAxis
-                stroke="#0c4a6e"
-                fontSize={12}
-                label={{
-                  value: '月',
-                  angle: -90,
-                  position: 'insideLeft',
-                  fill: '#0c4a6e',
-                }}
-              />
-              <Tooltip
-                formatter={(value: number) => `${value} 月`}
-              />
-              <Bar
-                dataKey="回本月数"
-                fill="#0284c7"
-                radius={[6, 6, 0, 0]}
-                maxBarSize={60}
-              />
-            </BarChart>
-          </ResponsiveContainer>
-        </div>
-      </section>
-
-      {/* ===== Section 4: 现金流分析 ===== */}
+      {/* ===== Section 3: 经营模拟分析 ===== */}
       <section>
         <h2 className="flex items-center gap-2 text-lg font-bold text-sky-900 mb-4">
           <TrendingUp className="h-5 w-5 text-sky-700" />
-          现金流分析
-          <FormulaTip formula="累计现金流 = 初始现金 + Σ(月营收 × 综合毛利率 - 月固定成本)" />
+          经营模拟分析
+          <FormulaTip formula="基于月营收假设，模拟品类成本、纯利润、回本周期和现金流走势" />
         </h2>
         <div className="bg-white rounded-xl p-4 md:p-6 shadow-sm border border-sky-100">
+          {/* ── 营收假设 ── */}
+          <h3 className="text-sm font-bold text-sky-800 mb-3 flex items-center gap-1.5">
+            <DollarSign className="h-4 w-4 text-sky-600" />
+            营收假设
+          </h3>
           <div className="flex flex-col sm:flex-row items-start sm:items-center gap-4 mb-6">
             <label className="text-sm font-medium text-sky-900 shrink-0">
               月营收假设
@@ -615,8 +388,13 @@ export default function Investment() {
             </div>
           </div>
 
-          {/* 品类成本拆分 */}
-          <div className="mb-4 rounded-lg border border-sky-200 overflow-hidden">
+          {/* ── 品类成本拆分 ── */}
+          <h3 className="text-sm font-bold text-sky-800 mb-3 mt-6 flex items-center gap-1.5">
+            <Fish className="h-4 w-4 text-sky-600" />
+            品类成本拆分
+            <FormulaTip formula="各品类营收 = 月营收 × 销售占比；成本 = 营收 × (1 - 毛利率)" />
+          </h3>
+          <div className="rounded-lg border border-sky-200 overflow-hidden">
             <table className="w-full text-sm">
               <thead>
                 <tr className="bg-sky-50">
@@ -667,6 +445,135 @@ export default function Investment() {
             </table>
           </div>
 
+          {/* ── 纯利润分析 ── */}
+          <h3 className="text-sm font-bold text-sky-800 mb-3 mt-6 flex items-center gap-1.5">
+            <TrendingUp className="h-4 w-4 text-emerald-600" />
+            纯利润分析
+            <FormulaTip formula="月纯利润 = 月毛利润 - 月固定成本；纯利率 = 月纯利润 ÷ 月营收" />
+          </h3>
+          {(() => {
+            const totalGrossProfit = categoryBreakdown.reduce((s, c) => s + c.profit, 0);
+            const netProfit = totalGrossProfit - fixedCosts.monthly;
+            const netMargin = cashFlowRevenue > 0 ? netProfit / cashFlowRevenue : 0;
+            return (
+              <div className="mb-4 grid grid-cols-2 sm:grid-cols-4 gap-3">
+                <div className="rounded-lg bg-sky-50 border border-sky-200 p-3">
+                  <p className="text-xs text-sky-600 flex items-center gap-1">
+                    月营收<FormulaTip formula="滑块设定的月营收假设" />
+                  </p>
+                  <p className="text-lg font-bold font-mono text-sky-900 mt-1">¥{cashFlowRevenue.toLocaleString()}</p>
+                </div>
+                <div className="rounded-lg bg-emerald-50 border border-emerald-200 p-3">
+                  <p className="text-xs text-emerald-600 flex items-center gap-1">
+                    月毛利润<FormulaTip formula="月营收 × 综合毛利率" />
+                  </p>
+                  <p className="text-lg font-bold font-mono text-emerald-600 mt-1">¥{totalGrossProfit.toFixed(0)}</p>
+                </div>
+                <div className="rounded-lg bg-red-50 border border-red-200 p-3">
+                  <p className="text-xs text-red-600 flex items-center gap-1">
+                    月固定成本<FormulaTip formula="人工 + 水电 + 房租" />
+                  </p>
+                  <p className="text-lg font-bold font-mono text-red-600 mt-1">¥{fixedCosts.monthly.toLocaleString()}</p>
+                </div>
+                <div className={cn(
+                  'rounded-lg border-2 p-3',
+                  netProfit >= 0 ? 'bg-emerald-50 border-emerald-300' : 'bg-red-50 border-red-300'
+                )}>
+                  <p className={cn('text-xs flex items-center gap-1', netProfit >= 0 ? 'text-emerald-600' : 'text-red-600')}>
+                    月纯利润<FormulaTip formula="月毛利润 - 月固定成本" />
+                  </p>
+                  <p className={cn('text-lg font-bold font-mono mt-1', netProfit >= 0 ? 'text-emerald-600' : 'text-red-600')}>
+                    {netProfit >= 0 ? '+' : ''}¥{netProfit.toFixed(0)}
+                  </p>
+                  <p className={cn('text-xs mt-0.5 font-medium', netProfit >= 0 ? 'text-emerald-500' : 'text-red-500')}>
+                    纯利率 {(netMargin * 100).toFixed(1)}%
+                  </p>
+                </div>
+              </div>
+            );
+          })()}
+
+          {/* ── 回本与投资回报 ── */}
+          <h3 className="text-sm font-bold text-sky-800 mb-3 mt-6 flex items-center gap-1.5">
+            <Shield className="h-4 w-4 text-violet-600" />
+            回本与投资回报
+            <FormulaTip formula="回本周期 = 总投资 ÷ 月纯利润；年投资回报率 = 年纯利润 ÷ 总投资 × 100%" />
+          </h3>
+          {(() => {
+            const totalGrossProfit = categoryBreakdown.reduce((s, c) => s + c.profit, 0);
+            const netProfit = totalGrossProfit - fixedCosts.monthly;
+            const paybackMonths = netProfit > 0 ? investmentParams.totalInvestment / netProfit : Infinity;
+            const paybackDate = paybackMonths < Infinity
+              ? new Date(Date.now() + paybackMonths * 30 * 24 * 3600 * 1000).toLocaleDateString('zh-CN')
+              : '无法回本';
+            const annualProfit = netProfit * 12;
+            const annualROI = investmentParams.totalInvestment > 0 ? (annualProfit / investmentParams.totalInvestment * 100) : 0;
+            return (
+              <div className="mb-4 grid grid-cols-2 sm:grid-cols-4 gap-3">
+                <div className={cn(
+                  'rounded-lg border-2 p-3',
+                  paybackMonths < Infinity ? 'bg-sky-50 border-sky-300' : 'bg-red-50 border-red-300'
+                )}>
+                  <p className={cn('text-xs flex items-center gap-1', paybackMonths < Infinity ? 'text-sky-600' : 'text-red-600')}>
+                    回本周期<FormulaTip formula="总投资 ÷ 月纯利润" />
+                  </p>
+                  <p className={cn('text-lg font-bold font-mono mt-1', paybackMonths < Infinity ? 'text-sky-900' : 'text-red-600')}>
+                    {paybackMonths < Infinity ? `${(Math.round(paybackMonths * 10) / 10)} 月` : '无法回本'}
+                  </p>
+                  <p className="text-xs text-gray-400 mt-0.5">
+                    {paybackMonths < Infinity ? `预计 ${paybackDate}` : '月纯利润 ≤ 0'}
+                  </p>
+                </div>
+                <div className="rounded-lg bg-amber-50 border border-amber-200 p-3">
+                  <p className="text-xs text-amber-600 flex items-center gap-1">
+                    年纯利润<FormulaTip formula="月纯利润 × 12" />
+                  </p>
+                  <p className={cn('text-lg font-bold font-mono mt-1', annualProfit >= 0 ? 'text-emerald-600' : 'text-red-600')}>
+                    {annualProfit >= 0 ? '+' : ''}¥{annualProfit.toLocaleString()}
+                  </p>
+                </div>
+                <div className="rounded-lg bg-violet-50 border border-violet-200 p-3">
+                  <p className="text-xs text-violet-600 flex items-center gap-1">
+                    年投资回报率<FormulaTip formula="年纯利润 ÷ 总投资 × 100%" />
+                  </p>
+                  <p className={cn('text-lg font-bold font-mono mt-1', annualROI >= 0 ? 'text-violet-600' : 'text-red-600')}>
+                    {annualROI.toFixed(1)}%
+                  </p>
+                </div>
+                <div className={cn(
+                  'rounded-lg border-2 p-3',
+                  paybackMonths <= 12 ? 'bg-emerald-50 border-emerald-300' :
+                  paybackMonths <= 24 ? 'bg-amber-50 border-amber-300' :
+                  paybackMonths < Infinity ? 'bg-red-50 border-red-300' :
+                  'bg-red-50 border-red-300'
+                )}>
+                  <p className="text-xs text-gray-600">回本评估</p>
+                  <p className={cn(
+                    'text-lg font-bold mt-1',
+                    paybackMonths <= 12 ? 'text-emerald-600' :
+                    paybackMonths <= 24 ? 'text-amber-600' :
+                    paybackMonths < Infinity ? 'text-red-600' : 'text-red-600'
+                  )}>
+                    {paybackMonths <= 12 ? '优秀' :
+                     paybackMonths <= 24 ? '良好' :
+                     paybackMonths < Infinity ? '偏长' : '不可行'}
+                  </p>
+                  <p className="text-xs text-gray-400 mt-0.5">
+                    {paybackMonths <= 12 ? '1年内回本' :
+                     paybackMonths <= 24 ? '1-2年回本' :
+                     paybackMonths < Infinity ? '超过2年' : '需提高营收或降本'}
+                  </p>
+                </div>
+              </div>
+            );
+          })()}
+
+          {/* ── 现金流走势 ── */}
+          <h3 className="text-sm font-bold text-sky-800 mb-3 mt-6 flex items-center gap-1.5">
+            <TrendingUp className="h-4 w-4 text-sky-600" />
+            现金流走势
+            <FormulaTip formula="累计现金流 = 初始现金 + Σ(月营收 × 综合毛利率 - 月固定成本)" />
+          </h3>
           <ResponsiveContainer width="100%" height={320}>
             <LineChart data={cashFlowData}>
               <CartesianGrid strokeDasharray="3 3" stroke="#e0f2fe" />
@@ -717,7 +624,12 @@ export default function Investment() {
             </LineChart>
           </ResponsiveContainer>
 
-          <div className="mt-4 grid grid-cols-1 sm:grid-cols-2 gap-4">
+          {/* ── 风险预警 ── */}
+          <h3 className="text-sm font-bold text-sky-800 mb-3 mt-6 flex items-center gap-1.5">
+            <AlertTriangle className="h-4 w-4 text-amber-600" />
+            风险预警
+          </h3>
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
             <div
               className={`flex items-center gap-3 rounded-lg p-3 ${
                 cashFlowMetrics.depletionRisk

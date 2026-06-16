@@ -101,7 +101,7 @@ export const useStore = create<StoreState>()(
       investmentParams: {
         totalInvestment: 200000,
         annualRent: 30000,
-        rentPaymentCycle: 'yearly',
+        rentPaymentCycle: 'quarterly',
         rentDepositMonths: 1,
         decoration: 60000,
         firstBatchMaterial: 40000,
