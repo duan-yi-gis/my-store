@@ -283,14 +283,6 @@ export default function Investment() {
             step={5000}
           />
           <InputField
-            label="首批物料"
-            value={investmentParams.firstBatchMaterial}
-            onChange={(v) => setInvestmentParams({ firstBatchMaterial: v })}
-            unit="元"
-            min={0}
-            step={5000}
-          />
-          <InputField
             label="月人工"
             value={investmentParams.monthlyLabor}
             onChange={(v) => setInvestmentParams({ monthlyLabor: v })}
@@ -305,6 +297,14 @@ export default function Investment() {
             unit="元"
             min={0}
             step={500}
+          />
+          <InputField
+            label="首批物料"
+            value={investmentParams.firstBatchMaterial}
+            onChange={(v) => setInvestmentParams({ firstBatchMaterial: v })}
+            unit="元"
+            min={0}
+            step={5000}
           />
         </div>
         <div className="mb-4 px-1 text-sm text-sky-800 bg-sky-50 rounded-lg py-2 px-3">

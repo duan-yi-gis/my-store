@@ -127,10 +127,10 @@ export function calculatePromotionImpact(
   for (const item of enabledItems) {
     switch (item.type) {
       case 'discount': {
-        // 折扣：最终价格 *= (1 - 折扣率)
-        const discountRate = item.params.discountRate ?? 0
-        const impact = basePrice * discountRate
-        finalPrice *= 1 - discountRate
+        // 折扣：最终价格 *= 折扣率（0.9=9折）
+        const discountRate = item.params.discountRate ?? 0.9
+        const impact = finalPrice * (1 - discountRate)
+        finalPrice *= discountRate
         breakdown.push({ type: item.type, name: promotionTypeNames[item.type], impact })
         break
       }
@@ -155,7 +155,7 @@ export function calculatePromotionImpact(
         break
       }
       case 'memberDiscount': {
-        // 会员折扣：最终价格 *= 0.95
+        // 会员折扣：最终价格 *= 会员折扣率（0.95=95折）
         const memberRate = item.params.memberRate ?? 0.95
         const impact = finalPrice * (1 - memberRate)
         finalPrice *= memberRate
@@ -163,10 +163,10 @@ export function calculatePromotionImpact(
         break
       }
       case 'groupBuy': {
-        // 团购：最终价格 *= (1 - 团购折扣率)
-        const groupDiscountRate = item.params.groupDiscountRate ?? 0
-        const impact = finalPrice * groupDiscountRate
-        finalPrice *= 1 - groupDiscountRate
+        // 团购：最终价格 *= 团购折扣率（0.85=85折）
+        const groupDiscountRate = item.params.groupDiscountRate ?? 0.85
+        const impact = finalPrice * (1 - groupDiscountRate)
+        finalPrice *= groupDiscountRate
         breakdown.push({ type: item.type, name: promotionTypeNames[item.type], impact })
         break
       }

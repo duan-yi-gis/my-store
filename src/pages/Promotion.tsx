@@ -38,9 +38,9 @@ const PROMOTION_CONFIGS: PromotionConfig[] = [
     type: 'discount',
     name: '打折',
     icon: Percent,
-    formula: '售价 × (1 - 折扣率)',
+    formula: '售价 × 折扣率（0.9=9折）',
     params: [
-      { key: 'discountRate', label: '折扣率', defaultValue: 0.1, min: 0, max: 1, step: 0.01, unit: '' },
+      { key: 'discountRate', label: '折扣率', defaultValue: 0.9, min: 0, max: 1, step: 0.01, unit: '' },
     ],
   },
   {
@@ -67,7 +67,7 @@ const PROMOTION_CONFIGS: PromotionConfig[] = [
     type: 'memberDiscount',
     name: '会员折扣',
     icon: Crown,
-    formula: '售价 × 会员折扣率',
+    formula: '售价 × 会员折扣率（0.95=95折）',
     params: [
       { key: 'memberRate', label: '会员折扣率', defaultValue: 0.95, min: 0, max: 1, step: 0.01, unit: '' },
     ],
@@ -76,9 +76,9 @@ const PROMOTION_CONFIGS: PromotionConfig[] = [
     type: 'groupBuy',
     name: '团购',
     icon: Users,
-    formula: '售价 × (1 - 团购折扣率)',
+    formula: '售价 × 团购折扣率（0.85=85折）',
     params: [
-      { key: 'groupDiscountRate', label: '团购折扣率', defaultValue: 0.15, min: 0, max: 1, step: 0.01, unit: '' },
+      { key: 'groupDiscountRate', label: '团购折扣率', defaultValue: 0.85, min: 0, max: 1, step: 0.01, unit: '' },
       { key: 'minPeople', label: '最少人数', defaultValue: 3, min: 2, step: 1, unit: '人' },
     ],
   },
