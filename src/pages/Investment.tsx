@@ -1,4 +1,4 @@
-import { useState, useMemo } from 'react';
+import { useState, useMemo } from "react";
 import {
   LineChart,
   Line,
@@ -8,7 +8,7 @@ import {
   Tooltip,
   ReferenceLine,
   ResponsiveContainer,
-} from 'recharts';
+} from "recharts";
 import {
   TrendingUp,
   Shield,
@@ -19,11 +19,11 @@ import {
   CheckCircle,
   Fish,
   Info,
-} from 'lucide-react';
-import { useStore } from '@/store/useStore';
-import { cn } from '@/lib/utils';
-import { StatCard } from '@/components/StatCard';
-import { InputField } from '@/components/InputField';
+} from "lucide-react";
+import { useStore } from "@/store/useStore";
+import { cn } from "@/lib/utils";
+import { StatCard } from "@/components/StatCard";
+import { InputField } from "@/components/InputField";
 import {
   calculateFixedCosts,
   calculateCompositeMargin,
@@ -31,7 +31,7 @@ import {
   calculateCashFlow,
   formatCurrency,
   formatPercent,
-} from '@/utils/calculations';
+} from "@/utils/calculations";
 
 function FormulaTip({ formula }: { formula: string }) {
   return (
@@ -68,11 +68,36 @@ export default function Investment() {
   // 品类成本拆分
   const categoryBreakdown = useMemo(() => {
     const categories = [
-      { key: 'seafood', label: '水产海鲜', margin: marginRates.seafood, ratio: salesRatios.seafood },
-      { key: 'chilled', label: '冰鲜', margin: marginRates.chilled, ratio: salesRatios.chilled },
-      { key: 'frozen', label: '冻货', margin: marginRates.frozen, ratio: salesRatios.frozen },
-      { key: 'dry', label: '干货', margin: marginRates.dry, ratio: salesRatios.dry },
-      { key: 'processed', label: '加工', margin: marginRates.processed, ratio: salesRatios.processed },
+      {
+        key: "seafood",
+        label: "水产海鲜",
+        margin: marginRates.seafood,
+        ratio: salesRatios.seafood,
+      },
+      {
+        key: "chilled",
+        label: "冰鲜",
+        margin: marginRates.chilled,
+        ratio: salesRatios.chilled,
+      },
+      {
+        key: "frozen",
+        label: "冻货",
+        margin: marginRates.frozen,
+        ratio: salesRatios.frozen,
+      },
+      {
+        key: "dry",
+        label: "干货",
+        margin: marginRates.dry,
+        ratio: salesRatios.dry,
+      },
+      {
+        key: "processed",
+        label: "加工",
+        margin: marginRates.processed,
+        ratio: salesRatios.processed,
+      },
     ];
     return categories.map((c) => {
       const revenue = cashFlowRevenue * c.ratio;
@@ -85,20 +110,25 @@ export default function Investment() {
   // Derived calculations
   const fixedCosts = useMemo(
     () => calculateFixedCosts(investmentParams),
-    [investmentParams]
+    [investmentParams],
   );
   const compositeMargin = useMemo(
     () => calculateCompositeMargin(marginRates, salesRatios),
-    [marginRates, salesRatios]
+    [marginRates, salesRatios],
   );
   const breakEven = useMemo(
     () => calculateBreakEven(fixedCosts, compositeMargin),
-    [fixedCosts, compositeMargin]
+    [fixedCosts, compositeMargin],
   );
-  const monthlyRent = investmentParams.annualRent / 12
-  const rentDeposit = monthlyRent * investmentParams.rentDepositMonths
-  const monthsPerCycle = investmentParams.rentPaymentCycle === 'yearly' ? 12 : investmentParams.rentPaymentCycle === 'quarterly' ? 3 : 6
-  const initialRentPayment = monthlyRent * monthsPerCycle
+  const monthlyRent = investmentParams.annualRent / 12;
+  const rentDeposit = monthlyRent * investmentParams.rentDepositMonths;
+  const monthsPerCycle =
+    investmentParams.rentPaymentCycle === "yearly"
+      ? 12
+      : investmentParams.rentPaymentCycle === "quarterly"
+        ? 3
+        : 6;
+  const initialRentPayment = monthlyRent * monthsPerCycle;
   const remainingCash =
     investmentParams.totalInvestment -
     investmentParams.decoration -
@@ -107,10 +137,29 @@ export default function Investment() {
     initialRentPayment;
 
   // Cash flow data
-  const initialOneTimeCost = investmentParams.decoration + investmentParams.firstBatchMaterial + rentDeposit + initialRentPayment
+  const initialOneTimeCost =
+    investmentParams.decoration +
+    investmentParams.firstBatchMaterial +
+    rentDeposit +
+    initialRentPayment;
   const cashFlowData = useMemo(
-    () => calculateCashFlow(investmentParams.totalInvestment, fixedCosts.monthly, compositeMargin, cashFlowRevenue, cashFlowMonths, initialOneTimeCost),
-    [investmentParams.totalInvestment, fixedCosts.monthly, compositeMargin, cashFlowRevenue, cashFlowMonths, initialOneTimeCost]
+    () =>
+      calculateCashFlow(
+        investmentParams.totalInvestment,
+        fixedCosts.monthly,
+        compositeMargin,
+        cashFlowRevenue,
+        cashFlowMonths,
+        initialOneTimeCost,
+      ),
+    [
+      investmentParams.totalInvestment,
+      fixedCosts.monthly,
+      compositeMargin,
+      cashFlowRevenue,
+      cashFlowMonths,
+      initialOneTimeCost,
+    ],
   );
 
   const cashFlowMetrics = useMemo(() => {
@@ -120,24 +169,45 @@ export default function Investment() {
 
     // 亏损临界月营收：月营收 × 综合毛利率 = 月固定成本 时的月营收
     // 即月营收 = 月固定成本 / 综合毛利率（盈亏平衡月营收）
-    const breakEvenMonthlyRevenue = compositeMargin > 0 ? fixedCosts.monthly / compositeMargin : Infinity;
+    const breakEvenMonthlyRevenue =
+      compositeMargin > 0 ? fixedCosts.monthly / compositeMargin : Infinity;
 
     // 考虑初始现金消耗的生存临界值：初始现金能撑N个月，N个月内需达到盈亏平衡
     // 生存月数 = 初始现金 / 月固定成本（假设零营收的最坏情况）
     const startingCash = investmentParams.totalInvestment - initialOneTimeCost;
-    const survivalMonthsZeroRevenue = fixedCosts.monthly > 0 ? Math.floor(startingCash / fixedCosts.monthly) : Infinity;
+    const survivalMonthsZeroRevenue =
+      fixedCosts.monthly > 0
+        ? Math.floor(startingCash / fixedCosts.monthly)
+        : Infinity;
 
     // 亏损临界月营收（考虑初始现金消耗）：需要在不超出生存月数内回本
     // 即：startingCash + n * (revenue * compositeMargin - fixedCosts) >= 0 对所有 n
     // 最小营收要求：revenue * compositeMargin >= fixedCosts → revenue >= fixedCosts / compositeMargin
     // 但如果 startingCash < 0，则还需要额外营收来弥补初始亏空
 
-    return { depletionRisk, minCumulative, safeMonths, breakEvenMonthlyRevenue, survivalMonthsZeroRevenue, startingCash };
-  }, [cashFlowData, compositeMargin, fixedCosts.monthly, investmentParams.totalInvestment, initialOneTimeCost]);
+    return {
+      depletionRisk,
+      minCumulative,
+      safeMonths,
+      breakEvenMonthlyRevenue,
+      survivalMonthsZeroRevenue,
+      startingCash,
+    };
+  }, [
+    cashFlowData,
+    compositeMargin,
+    fixedCosts.monthly,
+    investmentParams.totalInvestment,
+    initialOneTimeCost,
+  ]);
 
   // Sales ratio validation
   const salesRatioSum =
-    salesRatios.seafood + salesRatios.chilled + salesRatios.frozen + salesRatios.dry + salesRatios.processed;
+    salesRatios.seafood +
+    salesRatios.chilled +
+    salesRatios.frozen +
+    salesRatios.dry +
+    salesRatios.processed;
   const salesRatioValid = Math.abs(salesRatioSum - 1) < 0.001;
 
   return (
@@ -150,14 +220,16 @@ export default function Investment() {
           <FormulaTip formula="固定成本 = 人工 + 水电 + 房租；剩余现金 = 总投资 - 一次性支出" />
         </h2>
         <div className="grid grid-cols-2 md:grid-cols-3 gap-4 mb-6">
-          <InputField
-            label="总投资"
-            value={investmentParams.totalInvestment}
-            onChange={(v) => setInvestmentParams({ totalInvestment: v })}
-            unit="元"
-            min={0}
-            step={10000}
-          />
+          <div className="col-span-2 md:col-span-3 max-w-[calc(33.333%-1rem)]">
+            <InputField
+              label="总投资"
+              value={investmentParams.totalInvestment}
+              onChange={(v) => setInvestmentParams({ totalInvestment: v })}
+              unit="元"
+              min={0}
+              step={10000}
+            />
+          </div>
           <InputField
             label="年房租"
             value={investmentParams.annualRent}
@@ -166,28 +238,6 @@ export default function Investment() {
             min={0}
             step={5000}
           />
-          <div className="col-span-2 md:col-span-1">
-            <label className="block text-sm font-medium text-sky-900 mb-1">付款周期</label>
-            <div className="flex gap-2">
-              {([
-                { value: 'quarterly' as const, label: '季度付' },
-                { value: 'semiannual' as const, label: '半年付' },
-                { value: 'yearly' as const, label: '年付' },
-              ]).map((opt) => (
-                <button
-                  key={opt.value}
-                  onClick={() => setInvestmentParams({ rentPaymentCycle: opt.value })}
-                  className={`px-3 py-1.5 rounded-md text-sm font-medium transition-colors ${
-                    investmentParams.rentPaymentCycle === opt.value
-                      ? 'bg-sky-900 text-white'
-                      : 'bg-sky-100 text-sky-900 hover:bg-sky-200'
-                  }`}
-                >
-                  {opt.label}
-                </button>
-              ))}
-            </div>
-          </div>
           <InputField
             label="押金(月数)"
             value={investmentParams.rentDepositMonths}
@@ -197,6 +247,33 @@ export default function Investment() {
             max={6}
             step={1}
           />
+          <div className="col-span-2 md:col-span-1">
+            <label className="block text-sm font-medium text-sky-900 mb-1">
+              付款周期
+            </label>
+            <div className="flex rounded-lg border border-sky-200 bg-white overflow-hidden h-[38px]">
+              {[
+                { value: "quarterly" as const, label: "季付" },
+                { value: "semiannual" as const, label: "半年付" },
+                { value: "yearly" as const, label: "年付" },
+              ].map((opt) => (
+                <button
+                  key={opt.value}
+                  onClick={() =>
+                    setInvestmentParams({ rentPaymentCycle: opt.value })
+                  }
+                  className={cn(
+                    "flex-1 text-xs font-medium transition-colors",
+                    investmentParams.rentPaymentCycle === opt.value
+                      ? "bg-sky-300 text-white"
+                      : "bg-white text-sky-700 hover:bg-sky-50",
+                  )}
+                >
+                  {opt.label}
+                </button>
+              ))}
+            </div>
+          </div>
           <InputField
             label="装修费用"
             value={investmentParams.decoration}
@@ -231,22 +308,14 @@ export default function Investment() {
           />
         </div>
         <div className="mb-4 px-1 text-sm text-sky-800 bg-sky-50 rounded-lg py-2 px-3">
-          首期支付：押金 {investmentParams.rentDepositMonths}个月 + 首期租金 {monthsPerCycle}个月 = ¥{(rentDeposit + initialRentPayment).toLocaleString('zh-CN', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
+          首期支付：押金 {investmentParams.rentDepositMonths}个月 + 首期租金{" "}
+          {monthsPerCycle}个月 = ¥
+          {(rentDeposit + initialRentPayment).toLocaleString("zh-CN", {
+            minimumFractionDigits: 2,
+            maximumFractionDigits: 2,
+          })}
         </div>
         <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
-          <div className="relative group">
-            <StatCard
-              title="月固定成本"
-              value={formatCurrency(fixedCosts.monthly)}
-              icon={<TrendingUp className="h-5 w-5" />}
-            />
-            <div className="absolute left-1/2 -translate-x-1/2 top-full mt-1 z-10 hidden group-hover:block">
-              <div className="relative bg-sky-900 text-white text-xs rounded-lg px-3 py-2 shadow-lg whitespace-nowrap">
-                <div className="absolute -top-1.5 left-1/2 -translate-x-1/2 w-3 h-3 bg-sky-900 rotate-45" />
-                月人工 + 月水电 + 年房租 ÷ 12
-              </div>
-            </div>
-          </div>
           <div className="relative group">
             <StatCard
               title="日固定成本"
@@ -262,14 +331,31 @@ export default function Investment() {
           </div>
           <div className="relative group">
             <StatCard
-              title="综合毛利率"
-              value={formatPercent(compositeMargin * 100)}
-              variant={compositeMargin < warningThreshold ? 'danger' : 'success'}
+              title="月固定成本"
+              value={formatCurrency(fixedCosts.monthly)}
+              icon={<TrendingUp className="h-5 w-5" />}
             />
             <div className="absolute left-1/2 -translate-x-1/2 top-full mt-1 z-10 hidden group-hover:block">
               <div className="relative bg-sky-900 text-white text-xs rounded-lg px-3 py-2 shadow-lg whitespace-nowrap">
                 <div className="absolute -top-1.5 left-1/2 -translate-x-1/2 w-3 h-3 bg-sky-900 rotate-45" />
-                水产占比×水产毛利率 + 冰鲜占比×冰鲜毛利率 + 冻货占比×冻货毛利率 + 干货占比×干货毛利率 + 加工占比×加工毛利率
+                月人工 + 月水电 + 年房租 ÷ 12
+              </div>
+            </div>
+          </div>
+
+          <div className="relative group">
+            <StatCard
+              title="综合毛利率"
+              value={formatPercent(compositeMargin * 100)}
+              variant={
+                compositeMargin < warningThreshold ? "danger" : "success"
+              }
+            />
+            <div className="absolute left-1/2 -translate-x-1/2 top-full mt-1 z-10 hidden group-hover:block">
+              <div className="relative bg-sky-900 text-white text-xs rounded-lg px-3 py-2 shadow-lg whitespace-nowrap">
+                <div className="absolute -top-1.5 left-1/2 -translate-x-1/2 w-3 h-3 bg-sky-900 rotate-45" />
+                水产占比×水产毛利率 + 冰鲜占比×冰鲜毛利率 + 冻货占比×冻货毛利率
+                + 干货占比×干货毛利率 + 加工占比×加工毛利率
               </div>
             </div>
           </div>
@@ -277,7 +363,7 @@ export default function Investment() {
             <StatCard
               title="剩余现金"
               value={formatCurrency(remainingCash)}
-              variant={remainingCash < 0 ? 'danger' : 'default'}
+              variant={remainingCash < 0 ? "danger" : "default"}
             />
             <div className="absolute left-1/2 -translate-x-1/2 top-full mt-1 z-10 hidden group-hover:block">
               <div className="relative bg-sky-900 text-white text-xs rounded-lg px-3 py-2 shadow-lg whitespace-nowrap">
@@ -371,15 +457,17 @@ export default function Investment() {
               </span>
             </div>
             <div className="flex items-center gap-2">
-              <span className="text-sm font-medium text-sky-900 shrink-0">预测周期</span>
+              <span className="text-sm font-medium text-sky-900 shrink-0">
+                预测周期
+              </span>
               {([12, 24, 36] as const).map((m) => (
                 <button
                   key={m}
                   onClick={() => setCashFlowMonths(m)}
                   className={`px-3 py-1.5 rounded-md text-sm font-medium transition-colors ${
                     cashFlowMonths === m
-                      ? 'bg-sky-900 text-white'
-                      : 'bg-sky-100 text-sky-700 hover:bg-sky-200'
+                      ? "bg-sky-900 text-white"
+                      : "bg-sky-100 text-sky-700 hover:bg-sky-200"
                   }`}
                 >
                   {m}个月
@@ -398,26 +486,57 @@ export default function Investment() {
             <table className="w-full text-sm">
               <thead>
                 <tr className="bg-sky-50">
-                  <th className="text-left py-2 px-3 text-sky-900 font-semibold text-xs">品类</th>
-                  <th className="text-right py-2 px-3 text-sky-900 font-semibold text-xs">销售占比</th>
-                  <th className="text-right py-2 px-3 text-sky-900 font-semibold text-xs">月营收</th>
-                  <th className="text-right py-2 px-3 text-sky-900 font-semibold text-xs">产品成本</th>
-                  <th className="text-right py-2 px-3 text-sky-900 font-semibold text-xs">毛利润</th>
-                  <th className="text-right py-2 px-3 text-sky-900 font-semibold text-xs">毛利率</th>
+                  <th className="text-left py-2 px-3 text-sky-900 font-semibold text-xs">
+                    品类
+                  </th>
+                  <th className="text-right py-2 px-3 text-sky-900 font-semibold text-xs">
+                    销售占比
+                  </th>
+                  <th className="text-right py-2 px-3 text-sky-900 font-semibold text-xs">
+                    月营收
+                  </th>
+                  <th className="text-right py-2 px-3 text-sky-900 font-semibold text-xs">
+                    产品成本
+                  </th>
+                  <th className="text-right py-2 px-3 text-sky-900 font-semibold text-xs">
+                    毛利润
+                  </th>
+                  <th className="text-right py-2 px-3 text-sky-900 font-semibold text-xs">
+                    毛利率
+                  </th>
                 </tr>
               </thead>
               <tbody>
                 {categoryBreakdown.map((c) => (
-                  <tr key={c.key} className="border-t border-sky-100 hover:bg-sky-50/50 transition-colors">
-                    <td className="py-2 px-3 font-medium text-sky-900 text-xs">{c.label}</td>
-                    <td className="py-2 px-3 text-right font-mono text-xs text-sky-600">{(c.ratio * 100).toFixed(0)}%</td>
-                    <td className="py-2 px-3 text-right font-mono text-xs text-sky-900">¥{c.revenue.toFixed(0)}</td>
-                    <td className="py-2 px-3 text-right font-mono text-xs text-red-600">¥{c.cost.toFixed(0)}</td>
-                    <td className="py-2 px-3 text-right font-mono text-xs text-emerald-600">¥{c.profit.toFixed(0)}</td>
+                  <tr
+                    key={c.key}
+                    className="border-t border-sky-100 hover:bg-sky-50/50 transition-colors"
+                  >
+                    <td className="py-2 px-3 font-medium text-sky-900 text-xs">
+                      {c.label}
+                    </td>
+                    <td className="py-2 px-3 text-right font-mono text-xs text-sky-600">
+                      {(c.ratio * 100).toFixed(0)}%
+                    </td>
+                    <td className="py-2 px-3 text-right font-mono text-xs text-sky-900">
+                      ¥{c.revenue.toFixed(0)}
+                    </td>
+                    <td className="py-2 px-3 text-right font-mono text-xs text-red-600">
+                      ¥{c.cost.toFixed(0)}
+                    </td>
+                    <td className="py-2 px-3 text-right font-mono text-xs text-emerald-600">
+                      ¥{c.profit.toFixed(0)}
+                    </td>
                     <td className="py-2 px-3 text-right font-mono text-xs font-semibold">
-                      <span className={
-                        c.margin >= 0.4 ? 'text-emerald-600' : c.margin >= 0.25 ? 'text-amber-600' : 'text-red-600'
-                      }>
+                      <span
+                        className={
+                          c.margin >= 0.4
+                            ? "text-emerald-600"
+                            : c.margin >= 0.25
+                              ? "text-amber-600"
+                              : "text-red-600"
+                        }
+                      >
                         {(c.margin * 100).toFixed(0)}%
                       </span>
                     </td>
@@ -425,18 +544,34 @@ export default function Investment() {
                 ))}
                 <tr className="border-t-2 border-sky-300 bg-sky-50/80 font-bold">
                   <td className="py-2 px-3 text-sky-900 text-xs">合计</td>
-                  <td className="py-2 px-3 text-right font-mono text-xs text-sky-600">100%</td>
-                  <td className="py-2 px-3 text-right font-mono text-xs text-sky-900">¥{cashFlowRevenue.toLocaleString()}</td>
+                  <td className="py-2 px-3 text-right font-mono text-xs text-sky-600">
+                    100%
+                  </td>
+                  <td className="py-2 px-3 text-right font-mono text-xs text-sky-900">
+                    ¥{cashFlowRevenue.toLocaleString()}
+                  </td>
                   <td className="py-2 px-3 text-right font-mono text-xs text-red-600">
-                    ¥{categoryBreakdown.reduce((s, c) => s + c.cost, 0).toFixed(0)}
+                    ¥
+                    {categoryBreakdown
+                      .reduce((s, c) => s + c.cost, 0)
+                      .toFixed(0)}
                   </td>
                   <td className="py-2 px-3 text-right font-mono text-xs text-emerald-600">
-                    ¥{categoryBreakdown.reduce((s, c) => s + c.profit, 0).toFixed(0)}
+                    ¥
+                    {categoryBreakdown
+                      .reduce((s, c) => s + c.profit, 0)
+                      .toFixed(0)}
                   </td>
                   <td className="py-2 px-3 text-right font-mono text-xs">
-                    <span className={
-                      compositeMargin >= 0.4 ? 'text-emerald-600' : compositeMargin >= 0.25 ? 'text-amber-600' : 'text-red-600'
-                    }>
+                    <span
+                      className={
+                        compositeMargin >= 0.4
+                          ? "text-emerald-600"
+                          : compositeMargin >= 0.25
+                            ? "text-amber-600"
+                            : "text-red-600"
+                      }
+                    >
                       {(compositeMargin * 100).toFixed(1)}%
                     </span>
                   </td>
@@ -452,40 +587,73 @@ export default function Investment() {
             <FormulaTip formula="月纯利润 = 月毛利润 - 月固定成本；纯利率 = 月纯利润 ÷ 月营收" />
           </h3>
           {(() => {
-            const totalGrossProfit = categoryBreakdown.reduce((s, c) => s + c.profit, 0);
+            const totalGrossProfit = categoryBreakdown.reduce(
+              (s, c) => s + c.profit,
+              0,
+            );
             const netProfit = totalGrossProfit - fixedCosts.monthly;
-            const netMargin = cashFlowRevenue > 0 ? netProfit / cashFlowRevenue : 0;
+            const netMargin =
+              cashFlowRevenue > 0 ? netProfit / cashFlowRevenue : 0;
             return (
               <div className="mb-4 grid grid-cols-2 sm:grid-cols-4 gap-3">
                 <div className="rounded-lg bg-sky-50 border border-sky-200 p-3">
                   <p className="text-xs text-sky-600 flex items-center gap-1">
-                    月营收<FormulaTip formula="滑块设定的月营收假设" />
+                    月营收
+                    <FormulaTip formula="滑块设定的月营收假设" />
                   </p>
-                  <p className="text-lg font-bold font-mono text-sky-900 mt-1">¥{cashFlowRevenue.toLocaleString()}</p>
+                  <p className="text-lg font-bold font-mono text-sky-900 mt-1">
+                    ¥{cashFlowRevenue.toLocaleString()}
+                  </p>
                 </div>
                 <div className="rounded-lg bg-emerald-50 border border-emerald-200 p-3">
                   <p className="text-xs text-emerald-600 flex items-center gap-1">
-                    月毛利润<FormulaTip formula="月营收 × 综合毛利率" />
+                    月毛利润
+                    <FormulaTip formula="月营收 × 综合毛利率" />
                   </p>
-                  <p className="text-lg font-bold font-mono text-emerald-600 mt-1">¥{totalGrossProfit.toFixed(0)}</p>
+                  <p className="text-lg font-bold font-mono text-emerald-600 mt-1">
+                    ¥{totalGrossProfit.toFixed(0)}
+                  </p>
                 </div>
                 <div className="rounded-lg bg-red-50 border border-red-200 p-3">
                   <p className="text-xs text-red-600 flex items-center gap-1">
-                    月固定成本<FormulaTip formula="人工 + 水电 + 房租" />
+                    月固定成本
+                    <FormulaTip formula="人工 + 水电 + 房租" />
                   </p>
-                  <p className="text-lg font-bold font-mono text-red-600 mt-1">¥{fixedCosts.monthly.toLocaleString()}</p>
+                  <p className="text-lg font-bold font-mono text-red-600 mt-1">
+                    ¥{fixedCosts.monthly.toLocaleString()}
+                  </p>
                 </div>
-                <div className={cn(
-                  'rounded-lg border-2 p-3',
-                  netProfit >= 0 ? 'bg-emerald-50 border-emerald-300' : 'bg-red-50 border-red-300'
-                )}>
-                  <p className={cn('text-xs flex items-center gap-1', netProfit >= 0 ? 'text-emerald-600' : 'text-red-600')}>
-                    月纯利润<FormulaTip formula="月毛利润 - 月固定成本" />
+                <div
+                  className={cn(
+                    "rounded-lg border-2 p-3",
+                    netProfit >= 0
+                      ? "bg-emerald-50 border-emerald-300"
+                      : "bg-red-50 border-red-300",
+                  )}
+                >
+                  <p
+                    className={cn(
+                      "text-xs flex items-center gap-1",
+                      netProfit >= 0 ? "text-emerald-600" : "text-red-600",
+                    )}
+                  >
+                    月纯利润
+                    <FormulaTip formula="月毛利润 - 月固定成本" />
                   </p>
-                  <p className={cn('text-lg font-bold font-mono mt-1', netProfit >= 0 ? 'text-emerald-600' : 'text-red-600')}>
-                    {netProfit >= 0 ? '+' : ''}¥{netProfit.toFixed(0)}
+                  <p
+                    className={cn(
+                      "text-lg font-bold font-mono mt-1",
+                      netProfit >= 0 ? "text-emerald-600" : "text-red-600",
+                    )}
+                  >
+                    {netProfit >= 0 ? "+" : ""}¥{netProfit.toFixed(0)}
                   </p>
-                  <p className={cn('text-xs mt-0.5 font-medium', netProfit >= 0 ? 'text-emerald-500' : 'text-red-500')}>
+                  <p
+                    className={cn(
+                      "text-xs mt-0.5 font-medium",
+                      netProfit >= 0 ? "text-emerald-500" : "text-red-500",
+                    )}
+                  >
                     纯利率 {(netMargin * 100).toFixed(1)}%
                   </p>
                 </div>
@@ -500,68 +668,135 @@ export default function Investment() {
             <FormulaTip formula="回本周期 = 总投资 ÷ 月纯利润；年投资回报率 = 年纯利润 ÷ 总投资 × 100%" />
           </h3>
           {(() => {
-            const totalGrossProfit = categoryBreakdown.reduce((s, c) => s + c.profit, 0);
+            const totalGrossProfit = categoryBreakdown.reduce(
+              (s, c) => s + c.profit,
+              0,
+            );
             const netProfit = totalGrossProfit - fixedCosts.monthly;
-            const paybackMonths = netProfit > 0 ? investmentParams.totalInvestment / netProfit : Infinity;
-            const paybackDate = paybackMonths < Infinity
-              ? new Date(Date.now() + paybackMonths * 30 * 24 * 3600 * 1000).toLocaleDateString('zh-CN')
-              : '无法回本';
+            const paybackMonths =
+              netProfit > 0
+                ? investmentParams.totalInvestment / netProfit
+                : Infinity;
+            const paybackDate =
+              paybackMonths < Infinity
+                ? new Date(
+                    Date.now() + paybackMonths * 30 * 24 * 3600 * 1000,
+                  ).toLocaleDateString("zh-CN")
+                : "无法回本";
             const annualProfit = netProfit * 12;
-            const annualROI = investmentParams.totalInvestment > 0 ? (annualProfit / investmentParams.totalInvestment * 100) : 0;
+            const annualROI =
+              investmentParams.totalInvestment > 0
+                ? (annualProfit / investmentParams.totalInvestment) * 100
+                : 0;
             return (
               <div className="mb-4 grid grid-cols-2 sm:grid-cols-4 gap-3">
-                <div className={cn(
-                  'rounded-lg border-2 p-3',
-                  paybackMonths < Infinity ? 'bg-sky-50 border-sky-300' : 'bg-red-50 border-red-300'
-                )}>
-                  <p className={cn('text-xs flex items-center gap-1', paybackMonths < Infinity ? 'text-sky-600' : 'text-red-600')}>
-                    回本周期<FormulaTip formula="总投资 ÷ 月纯利润" />
+                <div
+                  className={cn(
+                    "rounded-lg border-2 p-3",
+                    paybackMonths < Infinity
+                      ? "bg-sky-50 border-sky-300"
+                      : "bg-red-50 border-red-300",
+                  )}
+                >
+                  <p
+                    className={cn(
+                      "text-xs flex items-center gap-1",
+                      paybackMonths < Infinity
+                        ? "text-sky-600"
+                        : "text-red-600",
+                    )}
+                  >
+                    回本周期
+                    <FormulaTip formula="总投资 ÷ 月纯利润" />
                   </p>
-                  <p className={cn('text-lg font-bold font-mono mt-1', paybackMonths < Infinity ? 'text-sky-900' : 'text-red-600')}>
-                    {paybackMonths < Infinity ? `${(Math.round(paybackMonths * 10) / 10)} 月` : '无法回本'}
+                  <p
+                    className={cn(
+                      "text-lg font-bold font-mono mt-1",
+                      paybackMonths < Infinity
+                        ? "text-sky-900"
+                        : "text-red-600",
+                    )}
+                  >
+                    {paybackMonths < Infinity
+                      ? `${Math.round(paybackMonths * 10) / 10} 月`
+                      : "无法回本"}
                   </p>
                   <p className="text-xs text-gray-400 mt-0.5">
-                    {paybackMonths < Infinity ? `预计 ${paybackDate}` : '月纯利润 ≤ 0'}
+                    {paybackMonths < Infinity
+                      ? `预计 ${paybackDate}`
+                      : "月纯利润 ≤ 0"}
                   </p>
                 </div>
                 <div className="rounded-lg bg-amber-50 border border-amber-200 p-3">
                   <p className="text-xs text-amber-600 flex items-center gap-1">
-                    年纯利润<FormulaTip formula="月纯利润 × 12" />
+                    年纯利润
+                    <FormulaTip formula="月纯利润 × 12" />
                   </p>
-                  <p className={cn('text-lg font-bold font-mono mt-1', annualProfit >= 0 ? 'text-emerald-600' : 'text-red-600')}>
-                    {annualProfit >= 0 ? '+' : ''}¥{annualProfit.toLocaleString()}
+                  <p
+                    className={cn(
+                      "text-lg font-bold font-mono mt-1",
+                      annualProfit >= 0 ? "text-emerald-600" : "text-red-600",
+                    )}
+                  >
+                    {annualProfit >= 0 ? "+" : ""}¥
+                    {annualProfit.toLocaleString()}
                   </p>
                 </div>
                 <div className="rounded-lg bg-violet-50 border border-violet-200 p-3">
                   <p className="text-xs text-violet-600 flex items-center gap-1">
-                    年投资回报率<FormulaTip formula="年纯利润 ÷ 总投资 × 100%" />
+                    年投资回报率
+                    <FormulaTip formula="年纯利润 ÷ 总投资 × 100%" />
                   </p>
-                  <p className={cn('text-lg font-bold font-mono mt-1', annualROI >= 0 ? 'text-violet-600' : 'text-red-600')}>
+                  <p
+                    className={cn(
+                      "text-lg font-bold font-mono mt-1",
+                      annualROI >= 0 ? "text-violet-600" : "text-red-600",
+                    )}
+                  >
                     {annualROI.toFixed(1)}%
                   </p>
                 </div>
-                <div className={cn(
-                  'rounded-lg border-2 p-3',
-                  paybackMonths <= 12 ? 'bg-emerald-50 border-emerald-300' :
-                  paybackMonths <= 24 ? 'bg-amber-50 border-amber-300' :
-                  paybackMonths < Infinity ? 'bg-red-50 border-red-300' :
-                  'bg-red-50 border-red-300'
-                )}>
+                <div
+                  className={cn(
+                    "rounded-lg border-2 p-3",
+                    paybackMonths <= 12
+                      ? "bg-emerald-50 border-emerald-300"
+                      : paybackMonths <= 24
+                        ? "bg-amber-50 border-amber-300"
+                        : paybackMonths < Infinity
+                          ? "bg-red-50 border-red-300"
+                          : "bg-red-50 border-red-300",
+                  )}
+                >
                   <p className="text-xs text-gray-600">回本评估</p>
-                  <p className={cn(
-                    'text-lg font-bold mt-1',
-                    paybackMonths <= 12 ? 'text-emerald-600' :
-                    paybackMonths <= 24 ? 'text-amber-600' :
-                    paybackMonths < Infinity ? 'text-red-600' : 'text-red-600'
-                  )}>
-                    {paybackMonths <= 12 ? '优秀' :
-                     paybackMonths <= 24 ? '良好' :
-                     paybackMonths < Infinity ? '偏长' : '不可行'}
+                  <p
+                    className={cn(
+                      "text-lg font-bold mt-1",
+                      paybackMonths <= 12
+                        ? "text-emerald-600"
+                        : paybackMonths <= 24
+                          ? "text-amber-600"
+                          : paybackMonths < Infinity
+                            ? "text-red-600"
+                            : "text-red-600",
+                    )}
+                  >
+                    {paybackMonths <= 12
+                      ? "优秀"
+                      : paybackMonths <= 24
+                        ? "良好"
+                        : paybackMonths < Infinity
+                          ? "偏长"
+                          : "不可行"}
                   </p>
                   <p className="text-xs text-gray-400 mt-0.5">
-                    {paybackMonths <= 12 ? '1年内回本' :
-                     paybackMonths <= 24 ? '1-2年回本' :
-                     paybackMonths < Infinity ? '超过2年' : '需提高营收或降本'}
+                    {paybackMonths <= 12
+                      ? "1年内回本"
+                      : paybackMonths <= 24
+                        ? "1-2年回本"
+                        : paybackMonths < Infinity
+                          ? "超过2年"
+                          : "需提高营收或降本"}
                   </p>
                 </div>
               </div>
@@ -582,17 +817,15 @@ export default function Investment() {
                 stroke="#0c4a6e"
                 fontSize={12}
                 label={{
-                  value: '月',
-                  position: 'insideBottomRight',
+                  value: "月",
+                  position: "insideBottomRight",
                   offset: -5,
-                  fill: '#0c4a6e',
+                  fill: "#0c4a6e",
                 }}
               />
               <YAxis
                 tickFormatter={(v: number) =>
-                  v >= 10000
-                    ? `¥${(v / 10000).toFixed(1)}万`
-                    : `¥${v}`
+                  v >= 10000 ? `¥${(v / 10000).toFixed(1)}万` : `¥${v}`
                 }
                 stroke="#0c4a6e"
                 fontSize={12}
@@ -607,9 +840,9 @@ export default function Investment() {
                 strokeDasharray="5 5"
                 strokeWidth={2}
                 label={{
-                  value: '盈亏线',
-                  position: 'right',
-                  fill: '#ef4444',
+                  value: "盈亏线",
+                  position: "right",
+                  fill: "#ef4444",
                   fontSize: 12,
                 }}
               />
@@ -618,7 +851,7 @@ export default function Investment() {
                 dataKey="cumulative"
                 stroke="#0284c7"
                 strokeWidth={2.5}
-                dot={{ r: 3, fill: '#0284c7' }}
+                dot={{ r: 3, fill: "#0284c7" }}
                 name="累计现金流"
               />
             </LineChart>
@@ -633,8 +866,8 @@ export default function Investment() {
             <div
               className={`flex items-center gap-3 rounded-lg p-3 ${
                 cashFlowMetrics.depletionRisk
-                  ? 'bg-red-50 border border-red-200'
-                  : 'bg-emerald-50 border border-emerald-200'
+                  ? "bg-red-50 border border-red-200"
+                  : "bg-emerald-50 border border-emerald-200"
               }`}
             >
               {cashFlowMetrics.depletionRisk ? (
@@ -650,13 +883,13 @@ export default function Investment() {
                 <p
                   className={`text-sm font-semibold ${
                     cashFlowMetrics.depletionRisk
-                      ? 'text-red-700'
-                      : 'text-emerald-700'
+                      ? "text-red-700"
+                      : "text-emerald-700"
                   }`}
                 >
                   {cashFlowMetrics.depletionRisk
                     ? `最低余额 ${formatCurrency(cashFlowMetrics.minCumulative)}`
-                    : '无枯竭风险'}
+                    : "无枯竭风险"}
                 </p>
               </div>
             </div>
@@ -684,9 +917,13 @@ export default function Investment() {
             <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
               <div className="bg-white rounded-lg p-3 border border-amber-200">
                 <p className="text-xs text-amber-600 mb-1">亏损临界月营收</p>
-                <p className={`text-lg font-bold font-mono ${
-                  cashFlowRevenue < cashFlowMetrics.breakEvenMonthlyRevenue ? 'text-red-600' : 'text-emerald-600'
-                }`}>
+                <p
+                  className={`text-lg font-bold font-mono ${
+                    cashFlowRevenue < cashFlowMetrics.breakEvenMonthlyRevenue
+                      ? "text-red-600"
+                      : "text-emerald-600"
+                  }`}
+                >
                   {formatCurrency(cashFlowMetrics.breakEvenMonthlyRevenue)}
                 </p>
                 <p className="text-xs text-amber-500 mt-1">
@@ -697,9 +934,13 @@ export default function Investment() {
               </div>
               <div className="bg-white rounded-lg p-3 border border-amber-200">
                 <p className="text-xs text-amber-600 mb-1">初始可用现金</p>
-                <p className={`text-lg font-bold font-mono ${
-                  cashFlowMetrics.startingCash < 0 ? 'text-red-600' : 'text-sky-900'
-                }`}>
+                <p
+                  className={`text-lg font-bold font-mono ${
+                    cashFlowMetrics.startingCash < 0
+                      ? "text-red-600"
+                      : "text-sky-900"
+                  }`}
+                >
                   {formatCurrency(cashFlowMetrics.startingCash)}
                 </p>
                 <p className="text-xs text-amber-500 mt-1">
@@ -708,10 +949,16 @@ export default function Investment() {
               </div>
               <div className="bg-white rounded-lg p-3 border border-amber-200">
                 <p className="text-xs text-amber-600 mb-1">零营收生存月数</p>
-                <p className={`text-lg font-bold font-mono ${
-                  cashFlowMetrics.survivalMonthsZeroRevenue < 4 ? 'text-red-600' : 'text-amber-700'
-                }`}>
-                  {cashFlowMetrics.survivalMonthsZeroRevenue === Infinity ? '∞' : `${cashFlowMetrics.survivalMonthsZeroRevenue} 个月`}
+                <p
+                  className={`text-lg font-bold font-mono ${
+                    cashFlowMetrics.survivalMonthsZeroRevenue < 4
+                      ? "text-red-600"
+                      : "text-amber-700"
+                  }`}
+                >
+                  {cashFlowMetrics.survivalMonthsZeroRevenue === Infinity
+                    ? "∞"
+                    : `${cashFlowMetrics.survivalMonthsZeroRevenue} 个月`}
                 </p>
                 <p className="text-xs text-amber-500 mt-1">
                   完全无营收情况下，现金可维持的时间
@@ -724,12 +971,14 @@ export default function Investment() {
                 初始现金为负！一次性支出已超过总投资，需要追加投资或削减开支。
               </div>
             )}
-            {cashFlowMetrics.startingCash >= 0 && cashFlowMetrics.survivalMonthsZeroRevenue < 4 && (
-              <div className="mt-3 flex items-center gap-2 text-sm text-amber-700 bg-amber-100 rounded-lg px-3 py-2 border border-amber-300">
-                <AlertTriangle className="h-4 w-4 shrink-0" />
-                生存缓冲不足4个月！建议预留至少4个月的固定成本作为应急资金（约 {formatCurrency(fixedCosts.monthly * 4)}）。
-              </div>
-            )}
+            {cashFlowMetrics.startingCash >= 0 &&
+              cashFlowMetrics.survivalMonthsZeroRevenue < 4 && (
+                <div className="mt-3 flex items-center gap-2 text-sm text-amber-700 bg-amber-100 rounded-lg px-3 py-2 border border-amber-300">
+                  <AlertTriangle className="h-4 w-4 shrink-0" />
+                  生存缓冲不足4个月！建议预留至少4个月的固定成本作为应急资金（约{" "}
+                  {formatCurrency(fixedCosts.monthly * 4)}）。
+                </div>
+              )}
           </div>
         </div>
       </section>
@@ -849,7 +1098,8 @@ export default function Investment() {
             {!salesRatioValid && (
               <div className="flex items-center gap-2 text-sm text-red-600 bg-red-50 rounded-lg px-4 py-2">
                 <AlertTriangle className="h-4 w-4 shrink-0" />
-                销售占比之和必须为 100%（当前合计: {formatPercent(salesRatioSum * 100)}）
+                销售占比之和必须为 100%（当前合计:{" "}
+                {formatPercent(salesRatioSum * 100)}）
               </div>
             )}
             <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
