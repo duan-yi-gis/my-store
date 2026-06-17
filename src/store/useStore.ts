@@ -5,7 +5,9 @@ import { persist } from 'zustand/middleware'
 interface Partner {
   id: string
   name: string
-  investment: number
+  type: 'capital' | 'labor' | 'both'  // 资金入股 | 人力入股 | 两者都入股
+  capitalInvestment: number            // 资金入股金额
+  laborShare: number                   // 人力入股比例 (0-100)
 }
 
 // 投资参数
@@ -108,7 +110,7 @@ export const useStore = create<StoreState>()(
       // 默认值
       investmentParams: {
         partners: [
-          { id: '1', name: '合伙人1', investment: 200000 },
+          { id: '1', name: '合伙人1', type: 'capital', capitalInvestment: 200000, laborShare: 0 },
         ],
         annualRent: 60000,
         rentPaymentCycle: 'quarterly',
@@ -204,9 +206,22 @@ export const useStore = create<StoreState>()(
         // 旧数据迁移：totalInvestment → partners
         if (persisted?.investmentParams && !persisted.investmentParams.partners) {
           persisted.investmentParams.partners = [
-            { id: '1', name: '合伙人1', investment: persisted.investmentParams.totalInvestment || 200000 },
+            { id: '1', name: '合伙人1', type: 'capital', capitalInvestment: persisted.investmentParams.totalInvestment || 200000, laborShare: 0 },
           ]
           delete persisted.investmentParams.totalInvestment
+        }
+        // 旧 partners 字段迁移：investment → capitalInvestment + type + laborShare
+        if (persisted?.investmentParams?.partners) {
+          persisted.investmentParams.partners = persisted.investmentParams.partners.map((p: any) => {
+            if (p.capitalInvestment !== undefined) return p
+            return {
+              id: p.id,
+              name: p.name,
+              type: 'capital' as const,
+              capitalInvestment: p.investment || 0,
+              laborShare: 0,
+            }
+          })
         }
         return persisted
       },

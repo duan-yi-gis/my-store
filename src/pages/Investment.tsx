@@ -68,7 +68,15 @@ export default function Investment() {
   const investmentParams = useMemo(
     () => ({
       ...rawInvestmentParams,
-      partners: rawInvestmentParams.partners ?? [{ id: '1', name: '合伙人1', investment: 200000 }],
+      partners: (rawInvestmentParams.partners ?? [{ id: '1', name: '合伙人1', type: 'capital' as const, capitalInvestment: 200000, laborShare: 0 }]).map(
+        (p: any) => ({
+          id: p.id,
+          name: p.name,
+          type: (p.type ?? 'capital') as 'capital' | 'labor' | 'both',
+          capitalInvestment: p.capitalInvestment ?? p.investment ?? 0,
+          laborShare: p.laborShare ?? 0,
+        }),
+      ),
     }),
     [rawInvestmentParams],
   );
@@ -76,10 +84,12 @@ export default function Investment() {
   const [settingsOpen, setSettingsOpen] = useState(false);
   const [cashFlowRevenue, setCashFlowRevenue] = useState(50000);
   const [cashFlowMonths, setCashFlowMonths] = useState(12);
+  const [enableReserve, setEnableReserve] = useState(true);
+  const [capitalPoolRatio, setCapitalPoolRatio] = useState(60);
 
-  // 总投资 = 合伙人投资之和
+  // 总投资 = 合伙人资金入股之和
   const totalInvestment = useMemo(
-    () => investmentParams.partners.reduce((s, p) => s + p.investment, 0),
+    () => investmentParams.partners.reduce((s, p) => s + p.capitalInvestment, 0),
     [investmentParams.partners],
   );
 
@@ -250,7 +260,7 @@ export default function Investment() {
                   const newId = crypto.randomUUID()
                   const idx = investmentParams.partners.length + 1
                   setInvestmentParams({
-                    partners: [...investmentParams.partners, { id: newId, name: `合伙人${idx}`, investment: 0 }],
+                    partners: [...investmentParams.partners, { id: newId, name: `合伙人${idx}`, type: 'capital', capitalInvestment: 0, laborShare: 0 }],
                   })
                 }}
                 className="flex items-center gap-1 px-3 py-1.5 rounded-lg text-xs font-medium bg-sky-600 text-white hover:bg-sky-700 transition-colors"
@@ -260,60 +270,126 @@ export default function Investment() {
               </button>
             </div>
             <div className="space-y-2">
-              {investmentParams.partners.map((partner, idx) => (
-                <div key={partner.id} className="flex items-center gap-2">
-                  <input
-                    type="text"
-                    value={partner.name}
-                    onChange={(e) => {
-                      const updated = investmentParams.partners.map((p) =>
-                        p.id === partner.id ? { ...p, name: e.target.value } : p,
-                      )
-                      setInvestmentParams({ partners: updated })
-                    }}
-                    className="w-28 rounded-lg border border-sky-300 bg-white px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-sky-500"
-                    placeholder="姓名"
-                  />
-                  <div className="flex-1 relative">
-                    <input
-                      type="number"
-                      value={partner.investment || ''}
-                      onChange={(e) => {
-                        const v = parseFloat(e.target.value) || 0
-                        const updated = investmentParams.partners.map((p) =>
-                          p.id === partner.id ? { ...p, investment: v } : p,
-                        )
-                        setInvestmentParams({ partners: updated })
-                      }}
-                      onWheel={(e) => e.currentTarget.blur()}
-                      min={0}
-                      step={10000}
-                      className="w-full rounded-lg border border-sky-300 bg-white px-3 py-2 text-sm font-mono focus:outline-none focus:ring-2 focus:ring-sky-500 [appearance:textfield] [&::-webkit-outer-spin-button]:appearance-none [&::-webkit-inner-spin-button]:appearance-none"
-                      placeholder="投资金额"
-                    />
-                    <span className="absolute right-3 top-1/2 -translate-y-1/2 text-xs text-sky-400">元</span>
+              {investmentParams.partners.map((partner) => {
+                const updatePartner = (patch: Partial<typeof partner>) => {
+                  const updated = investmentParams.partners.map((p) =>
+                    p.id === partner.id ? { ...p, ...patch } : p,
+                  )
+                  setInvestmentParams({ partners: updated })
+                }
+                return (
+                  <div key={partner.id} className="rounded-lg border border-sky-200 bg-white p-3">
+                    <div className="flex items-center gap-2 mb-2">
+                      <input
+                        type="text"
+                        value={partner.name}
+                        onChange={(e) => updatePartner({ name: e.target.value })}
+                        className="w-28 rounded-lg border border-sky-300 bg-white px-3 py-1.5 text-sm focus:outline-none focus:ring-2 focus:ring-sky-500"
+                        placeholder="姓名"
+                      />
+                      {/* 入股类型选择 */}
+                      <div className="flex rounded-lg border border-sky-200 overflow-hidden h-[30px]">
+                        {([
+                          { value: 'capital' as const, label: '资金入股' },
+                          { value: 'labor' as const, label: '人力入股' },
+                          { value: 'both' as const, label: '两者都入股' },
+                        ]).map((opt) => (
+                          <button
+                            key={opt.value}
+                            onClick={() => updatePartner({
+                              type: opt.value,
+                              laborShare: opt.value === 'capital' ? 0 : partner.laborShare,
+                              capitalInvestment: opt.value === 'labor' ? 0 : partner.capitalInvestment,
+                            })}
+                            className={cn(
+                              "px-2.5 text-xs font-medium transition-colors whitespace-nowrap",
+                              partner.type === opt.value
+                                ? "bg-sky-600 text-white"
+                                : "bg-white text-sky-600 hover:bg-sky-50",
+                            )}
+                          >
+                            {opt.label}
+                          </button>
+                        ))}
+                      </div>
+                      {investmentParams.partners.length > 1 && (
+                        <button
+                          onClick={() => {
+                            setInvestmentParams({
+                              partners: investmentParams.partners.filter((p) => p.id !== partner.id),
+                            })
+                          }}
+                          className="ml-auto p-1 rounded-lg text-red-400 hover:text-red-600 hover:bg-red-50 transition-colors"
+                        >
+                          <Trash2 className="h-4 w-4" />
+                        </button>
+                      )}
+                    </div>
+                    <div className="flex items-center gap-3">
+                      {/* 资金入股 */}
+                      {(partner.type === 'capital' || partner.type === 'both') && (
+                        <div className="flex-1 relative">
+                          <label className="text-xs text-sky-500 mb-0.5 block">资金入股</label>
+                          <input
+                            type="number"
+                            value={partner.capitalInvestment || ''}
+                            onChange={(e) => updatePartner({ capitalInvestment: parseFloat(e.target.value) || 0 })}
+                            onWheel={(e) => e.currentTarget.blur()}
+                            min={0}
+                            step={10000}
+                            className="w-full rounded-lg border border-sky-300 bg-white px-3 py-1.5 text-sm font-mono focus:outline-none focus:ring-2 focus:ring-sky-500 [appearance:textfield] [&::-webkit-outer-spin-button]:appearance-none [&::-webkit-inner-spin-button]:appearance-none"
+                            placeholder="投资金额"
+                          />
+                          <span className="absolute right-3 bottom-2 text-xs text-sky-400">元</span>
+                        </div>
+                      )}
+                      {/* 人力入股 */}
+                      {(partner.type === 'labor' || partner.type === 'both') && (
+                        <div className="flex-1">
+                          <label className="text-xs text-sky-500 mb-0.5 block">人力入股占比</label>
+                          <input
+                            type="number"
+                            value={partner.laborShare || ''}
+                            onChange={(e) => updatePartner({ laborShare: parseFloat(e.target.value) || 0 })}
+                            onWheel={(e) => e.currentTarget.blur()}
+                            min={0}
+                            max={100}
+                            step={1}
+                            className="w-full rounded-lg border border-sky-300 bg-white px-3 py-1.5 text-sm font-mono focus:outline-none focus:ring-2 focus:ring-sky-500 [appearance:textfield] [&::-webkit-outer-spin-button]:appearance-none [&::-webkit-inner-spin-button]:appearance-none"
+                            placeholder="占比"
+                          />
+                        </div>
+                      )}
+                      {/* 占比汇总 */}
+                      <div className="text-right min-w-[60px]">
+                        {partner.type !== 'labor' && (
+                          <>
+                            <p className="text-xs text-sky-500">资金占比</p>
+                            <p className="text-xs font-mono text-sky-700 font-semibold">
+                              {totalInvestment > 0 ? ((partner.capitalInvestment / totalInvestment) * 100).toFixed(1) : 0}%
+                            </p>
+                          </>
+                        )}
+                        {partner.type !== 'capital' && (
+                          <>
+                            <p className="text-xs text-amber-500 mt-1">人力占比</p>
+                            <p className="text-xs font-mono text-amber-700 font-semibold">
+                              {partner.laborShare}%
+                            </p>
+                          </>
+                        )}
+                      </div>
+                    </div>
                   </div>
-                  <span className="text-xs font-mono text-sky-600 min-w-[48px] text-right">
-                    {totalInvestment > 0 ? ((partner.investment / totalInvestment) * 100).toFixed(1) : 0}%
-                  </span>
-                  {investmentParams.partners.length > 1 && (
-                    <button
-                      onClick={() => {
-                        setInvestmentParams({
-                          partners: investmentParams.partners.filter((p) => p.id !== partner.id),
-                        })
-                      }}
-                      className="p-1.5 rounded-lg text-red-400 hover:text-red-600 hover:bg-red-50 transition-colors"
-                    >
-                      <Trash2 className="h-4 w-4" />
-                    </button>
-                  )}
-                </div>
-              ))}
+                )
+              })}
             </div>
             <div className="mt-2 flex items-center gap-4 text-sm bg-sky-50 rounded-lg px-3 py-2 border border-sky-200">
-              <span className="text-sky-700">总投资：</span>
+              <span className="text-sky-700">资金总投资：</span>
               <span className="font-bold font-mono text-sky-900 text-base">¥{totalInvestment.toLocaleString()}</span>
+              <span className="text-sky-500">|</span>
+              <span className="text-sky-700">人力总占比：</span>
+              <span className="font-bold font-mono text-amber-700 text-base">{investmentParams.partners.reduce((s, p) => s + (p.type !== 'capital' ? p.laborShare : 0), 0)}%</span>
               <span className="text-sky-500">|</span>
               <span className="text-sky-700">合伙人：{investmentParams.partners.length}人</span>
             </div>
@@ -452,6 +528,8 @@ export default function Investment() {
               title="剩余现金"
               value={formatCurrency(remainingCash)}
               variant={remainingCash < 0 ? "danger" : "default"}
+              subtitle={`零营收生存 ${cashFlowMetrics.survivalMonthsZeroRevenue === Infinity ? "∞" : `${cashFlowMetrics.survivalMonthsZeroRevenue}`} 月`}
+              subtitleClassName={cashFlowMetrics.survivalMonthsZeroRevenue < 4 ? "!text-red-300 !opacity-100" : undefined}
             />
             <div className="absolute left-1/2 -translate-x-1/2 top-full mt-1 z-10 hidden group-hover:block">
               <div className="relative bg-sky-900 text-white text-xs rounded-lg px-3 py-2 shadow-lg whitespace-nowrap">
@@ -892,11 +970,55 @@ export default function Investment() {
           })()}
 
           {/* ── 合伙人年底分红 ── */}
-          <h3 className="text-sm font-bold text-sky-800 mb-3 mt-6 flex items-center gap-1.5">
-            <Users className="h-4 w-4 text-amber-600" />
-            合伙人年底分红
-            <FormulaTip formula="年纯利润 × 各合伙人投资占比 = 各合伙人分红金额" />
-          </h3>
+          <div className="flex items-center justify-between mb-3 mt-6 flex-wrap gap-2">
+            <h3 className="text-sm font-bold text-sky-800 flex items-center gap-1.5">
+              <Users className="h-4 w-4 text-amber-600" />
+              合伙人年底分红
+              <FormulaTip formula={enableReserve
+                ? `可分红 = 年纯利润 - 4个月备用金；资金池 ${capitalPoolRatio}% × 可分红 ÷ 资金占比；人力池 ${100 - capitalPoolRatio}% × 可分红 ÷ 人力占比`
+                : `资金池 ${capitalPoolRatio}% × 年纯利润 ÷ 资金占比；人力池 ${100 - capitalPoolRatio}% × 年纯利润 ÷ 人力占比`
+              } />
+            </h3>
+            <div className="flex items-center gap-3 flex-wrap">
+              <div className="flex items-center gap-1.5">
+                <span className="text-xs text-sky-600">资金股池</span>
+                <input
+                  type="number"
+                  value={capitalPoolRatio}
+                  onChange={(e) => {
+                    const v = parseInt(e.target.value)
+                    if (!isNaN(v) && v >= 0 && v <= 100) setCapitalPoolRatio(v)
+                  }}
+                  onWheel={(e) => e.currentTarget.blur()}
+                  min={0}
+                  max={100}
+                  step={5}
+                  className="w-12 h-6 text-center text-xs font-mono font-bold border border-sky-300 rounded-md focus:outline-none focus:ring-1 focus:ring-sky-500 [appearance:textfield] [&::-webkit-outer-spin-button]:appearance-none [&::-webkit-inner-spin-button]:appearance-none"
+                />
+                <span className="text-xs text-sky-600">%</span>
+                <span className="text-xs text-gray-300 mx-0.5">|</span>
+                <span className="text-xs text-amber-600">人力股池 {100 - capitalPoolRatio}%</span>
+              </div>
+              <label className="flex items-center gap-2 cursor-pointer select-none">
+                <span className="text-xs text-sky-600">预留备用金</span>
+                <button
+                  type="button"
+                  role="switch"
+                  aria-checked={enableReserve}
+                  onClick={() => setEnableReserve(!enableReserve)}
+                  className={cn(
+                    'relative inline-flex h-5 w-9 shrink-0 rounded-full border-2 border-transparent transition-colors duration-200 ease-in-out focus:outline-none focus:ring-2 focus:ring-sky-500 focus:ring-offset-1',
+                    enableReserve ? 'bg-sky-600' : 'bg-gray-300'
+                  )}
+                >
+                  <span className={cn(
+                    'pointer-events-none inline-block h-4 w-4 transform rounded-full bg-white shadow ring-0 transition duration-200 ease-in-out',
+                    enableReserve ? 'translate-x-4' : 'translate-x-0'
+                  )} />
+                </button>
+              </label>
+            </div>
+          </div>
           {(() => {
             const totalGrossProfit = categoryBreakdown.reduce(
               (s, c) => s + c.profit,
@@ -904,6 +1026,14 @@ export default function Investment() {
             );
             const netProfit = totalGrossProfit - fixedCosts.monthly;
             const annualNetProfit = netProfit * 12;
+            const reserveFund = fixedCosts.monthly * 4;
+            const distributableProfit = enableReserve
+              ? Math.max(0, annualNetProfit - reserveFund)
+              : Math.max(0, annualNetProfit);
+            const totalCapital = totalInvestment;
+            const totalLaborShare = investmentParams.partners.reduce((s, p) => s + (p.type !== 'capital' ? p.laborShare : 0), 0);
+            const capitalPool = distributableProfit * (capitalPoolRatio / 100);
+            const laborPool = distributableProfit * ((100 - capitalPoolRatio) / 100);
             return (
               <div className="rounded-lg border border-sky-200 overflow-hidden">
                 <table className="w-full text-sm">
@@ -912,25 +1042,32 @@ export default function Investment() {
                       <th className="text-left py-2 px-3 text-sky-900 font-semibold text-xs">
                         合伙人
                       </th>
-                      <th className="text-right py-2 px-3 text-sky-900 font-semibold text-xs">
-                        投资金额
+                      <th className="text-center py-2 px-3 text-sky-900 font-semibold text-xs">
+                        入股类型
                       </th>
                       <th className="text-right py-2 px-3 text-sky-900 font-semibold text-xs">
-                        投资占比
+                        资金分红
                       </th>
                       <th className="text-right py-2 px-3 text-sky-900 font-semibold text-xs">
-                        年底分红
+                        人力分红
                       </th>
                       <th className="text-right py-2 px-3 text-sky-900 font-semibold text-xs">
-                        投资回报率
+                        合计分红
                       </th>
                     </tr>
                   </thead>
                   <tbody>
                     {investmentParams.partners.map((partner) => {
-                      const share = totalInvestment > 0 ? partner.investment / totalInvestment : 0;
-                      const dividend = annualNetProfit * share;
-                      const roi = partner.investment > 0 ? (dividend / partner.investment) * 100 : 0;
+                      const capitalShare = totalCapital > 0 && partner.type !== 'labor'
+                        ? partner.capitalInvestment / totalCapital
+                        : 0;
+                      const laborSharePct = partner.type !== 'capital' && totalLaborShare > 0
+                        ? partner.laborShare / totalLaborShare
+                        : 0;
+                      const capitalDividend = capitalPool * capitalShare;
+                      const laborDividend = laborPool * laborSharePct;
+                      const totalDividend = capitalDividend + laborDividend;
+                      const typeLabel = partner.type === 'capital' ? '资金' : partner.type === 'labor' ? '人力' : '资金+人力';
                       return (
                         <tr
                           key={partner.id}
@@ -939,56 +1076,59 @@ export default function Investment() {
                           <td className="py-2 px-3 font-medium text-sky-900 text-xs">
                             {partner.name}
                           </td>
-                          <td className="py-2 px-3 text-right font-mono text-xs text-sky-900">
-                            ¥{partner.investment.toLocaleString()}
+                          <td className="py-2 px-3 text-center text-xs">
+                            <span className={cn(
+                              "inline-block px-1.5 py-0.5 rounded text-xs font-medium",
+                              partner.type === 'capital' ? "bg-sky-100 text-sky-700" :
+                              partner.type === 'labor' ? "bg-amber-100 text-amber-700" :
+                              "bg-violet-100 text-violet-700",
+                            )}>
+                              {typeLabel}
+                            </span>
                           </td>
                           <td className="py-2 px-3 text-right font-mono text-xs text-sky-600">
-                            {(share * 100).toFixed(1)}%
+                            {partner.type !== 'labor' ? `¥${capitalDividend.toLocaleString("zh-CN", { minimumFractionDigits: 0, maximumFractionDigits: 0 })}` : '—'}
+                          </td>
+                          <td className="py-2 px-3 text-right font-mono text-xs text-amber-600">
+                            {partner.type !== 'capital' ? `¥${laborDividend.toLocaleString("zh-CN", { minimumFractionDigits: 0, maximumFractionDigits: 0 })}` : '—'}
                           </td>
                           <td className={cn(
                             "py-2 px-3 text-right font-mono text-xs font-semibold",
-                            dividend >= 0 ? "text-emerald-600" : "text-red-600",
+                            totalDividend > 0 ? "text-emerald-600" : "text-red-600",
                           )}>
-                            {dividend >= 0 ? "+" : ""}¥{dividend.toLocaleString("zh-CN", { minimumFractionDigits: 0, maximumFractionDigits: 0 })}
-                          </td>
-                          <td className={cn(
-                            "py-2 px-3 text-right font-mono text-xs font-semibold",
-                            roi >= 0 ? "text-violet-600" : "text-red-600",
-                          )}>
-                            {roi.toFixed(1)}%
+                            ¥{totalDividend.toLocaleString("zh-CN", { minimumFractionDigits: 0, maximumFractionDigits: 0 })}
                           </td>
                         </tr>
                       );
                     })}
                     <tr className="border-t-2 border-sky-300 bg-sky-50/80 font-bold">
                       <td className="py-2 px-3 text-sky-900 text-xs">合计</td>
-                      <td className="py-2 px-3 text-right font-mono text-xs text-sky-900">
-                        ¥{totalInvestment.toLocaleString()}
-                      </td>
+                      <td className="py-2 px-3 text-center text-xs text-sky-600">—</td>
                       <td className="py-2 px-3 text-right font-mono text-xs text-sky-600">
-                        100%
+                        ¥{capitalPool.toLocaleString("zh-CN", { minimumFractionDigits: 0, maximumFractionDigits: 0 })}
+                      </td>
+                      <td className="py-2 px-3 text-right font-mono text-xs text-amber-600">
+                        ¥{laborPool.toLocaleString("zh-CN", { minimumFractionDigits: 0, maximumFractionDigits: 0 })}
                       </td>
                       <td className={cn(
                         "py-2 px-3 text-right font-mono text-xs",
-                        annualNetProfit >= 0 ? "text-emerald-600" : "text-red-600",
+                        distributableProfit > 0 ? "text-emerald-600" : "text-red-600",
                       )}>
-                        {annualNetProfit >= 0 ? "+" : ""}¥{annualNetProfit.toLocaleString("zh-CN", { minimumFractionDigits: 0, maximumFractionDigits: 0 })}
-                      </td>
-                      <td className={cn(
-                        "py-2 px-3 text-right font-mono text-xs",
-                        totalInvestment > 0 && (annualNetProfit / totalInvestment) * 100 >= 0
-                          ? "text-violet-600"
-                          : "text-red-600",
-                      )}>
-                        {totalInvestment > 0 ? ((annualNetProfit / totalInvestment) * 100).toFixed(1) : "0.0"}%
+                        ¥{distributableProfit.toLocaleString("zh-CN", { minimumFractionDigits: 0, maximumFractionDigits: 0 })}
                       </td>
                     </tr>
                   </tbody>
                 </table>
-                {annualNetProfit <= 0 && (
+                {enableReserve && (
+                  <div className="flex items-center justify-between text-xs text-sky-600 bg-sky-50/50 px-3 py-1.5 border-t border-sky-100">
+                    <span>备用金预留：4个月固定成本</span>
+                    <span className="font-mono">¥{reserveFund.toLocaleString()}</span>
+                  </div>
+                )}
+                {distributableProfit <= 0 && (
                   <div className="flex items-center gap-2 text-xs text-red-600 bg-red-50 px-3 py-2 border-t border-red-200">
                     <AlertTriangle className="h-3.5 w-3.5 shrink-0" />
-                    年纯利润为负，暂无分红
+                    {enableReserve ? '扣除4个月备用金后无可分红利润' : '年纯利润为负，暂无分红'}
                   </div>
                 )}
               </div>
@@ -1097,80 +1237,6 @@ export default function Investment() {
                 </p>
               </div>
             </div>
-          </div>
-
-          {/* 亏损临界值分析 */}
-          <div className="mt-4 rounded-xl border-2 border-amber-200 bg-amber-50 p-4">
-            <h4 className="flex items-center gap-2 text-sm font-bold text-amber-800 mb-3">
-              <AlertTriangle className="h-4 w-4" />
-              亏损临界值分析
-              <FormulaTip formula="亏损临界月营收 = 月固定成本 ÷ 综合毛利率；零营收生存月数 = 初始现金 ÷ 月固定成本" />
-            </h4>
-            <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
-              <div className="bg-white rounded-lg p-3 border border-amber-200">
-                <p className="text-xs text-amber-600 mb-1">亏损临界月营收</p>
-                <p
-                  className={`text-lg font-bold font-mono ${
-                    cashFlowRevenue < cashFlowMetrics.breakEvenMonthlyRevenue
-                      ? "text-red-600"
-                      : "text-emerald-600"
-                  }`}
-                >
-                  {formatCurrency(cashFlowMetrics.breakEvenMonthlyRevenue)}
-                </p>
-                <p className="text-xs text-amber-500 mt-1">
-                  {cashFlowRevenue < cashFlowMetrics.breakEvenMonthlyRevenue
-                    ? `当前假设 ¥${cashFlowRevenue.toLocaleString()} 低于临界值，将亏损`
-                    : `当前假设 ¥${cashFlowRevenue.toLocaleString()} 高于临界值，可盈利`}
-                </p>
-              </div>
-              <div className="bg-white rounded-lg p-3 border border-amber-200">
-                <p className="text-xs text-amber-600 mb-1">初始可用现金</p>
-                <p
-                  className={`text-lg font-bold font-mono ${
-                    cashFlowMetrics.startingCash < 0
-                      ? "text-red-600"
-                      : "text-sky-900"
-                  }`}
-                >
-                  {formatCurrency(cashFlowMetrics.startingCash)}
-                </p>
-                <p className="text-xs text-amber-500 mt-1">
-                  = 总投资 - 一次性支出（装修+物料+押金+首期租金）
-                </p>
-              </div>
-              <div className="bg-white rounded-lg p-3 border border-amber-200">
-                <p className="text-xs text-amber-600 mb-1">零营收生存月数</p>
-                <p
-                  className={`text-lg font-bold font-mono ${
-                    cashFlowMetrics.survivalMonthsZeroRevenue < 4
-                      ? "text-red-600"
-                      : "text-amber-700"
-                  }`}
-                >
-                  {cashFlowMetrics.survivalMonthsZeroRevenue === Infinity
-                    ? "∞"
-                    : `${cashFlowMetrics.survivalMonthsZeroRevenue} 个月`}
-                </p>
-                <p className="text-xs text-amber-500 mt-1">
-                  完全无营收情况下，现金可维持的时间
-                </p>
-              </div>
-            </div>
-            {cashFlowMetrics.startingCash < 0 && (
-              <div className="mt-3 flex items-center gap-2 text-sm text-red-700 bg-red-50 rounded-lg px-3 py-2 border border-red-200">
-                <AlertTriangle className="h-4 w-4 shrink-0" />
-                初始现金为负！一次性支出已超过总投资，需要追加投资或削减开支。
-              </div>
-            )}
-            {cashFlowMetrics.startingCash >= 0 &&
-              cashFlowMetrics.survivalMonthsZeroRevenue < 4 && (
-                <div className="mt-3 flex items-center gap-2 text-sm text-amber-700 bg-amber-100 rounded-lg px-3 py-2 border border-amber-300">
-                  <AlertTriangle className="h-4 w-4 shrink-0" />
-                  生存缓冲不足4个月！建议预留至少4个月的固定成本作为应急资金（约{" "}
-                  {formatCurrency(fixedCosts.monthly * 4)}）。
-                </div>
-              )}
           </div>
         </div>
       </section>

@@ -8,6 +8,8 @@ interface StatCardProps {
   icon?: React.ReactNode;
   trend?: 'up' | 'down' | 'flat';
   trendValue?: string;
+  subtitle?: string;
+  subtitleClassName?: string;
   variant?: 'default' | 'warning' | 'danger' | 'success';
 }
 
@@ -31,6 +33,8 @@ export function StatCard({
   icon,
   trend,
   trendValue,
+  subtitle,
+  subtitleClassName,
   variant = 'default',
 }: StatCardProps) {
   const TrendIcon = trend ? trendConfig[trend].icon : null;
@@ -39,7 +43,7 @@ export function StatCard({
   return (
     <div
       className={cn(
-        'rounded-xl p-4 md:p-5 shadow-lg transition-transform duration-200 hover:scale-[1.02] w-full md:w-auto',
+        'relative rounded-xl p-4 md:p-5 shadow-lg transition-transform duration-200 hover:scale-[1.02] w-full md:w-auto',
         variantStyles[variant]
       )}
     >
@@ -61,6 +65,12 @@ export function StatCard({
           {TrendIcon && <TrendIcon className="h-4 w-4" />}
           <span>{trendValue}</span>
         </div>
+      )}
+
+      {subtitle && (
+        <p className={cn('absolute bottom-2 left-4 md:left-5 text-[10px] opacity-70', subtitleClassName)}>
+          {subtitle}
+        </p>
       )}
     </div>
   );
